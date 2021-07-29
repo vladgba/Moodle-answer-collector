@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name TsatuCheat
-// @version 1.4.2
+// @version 1.4.3
 // @require https://code.jquery.com/jquery-3.5.1.slim.min.js
 // @require https://unpkg.com/imagesloaded@4/imagesloaded.pkgd.min.js
 // @include http://op.tsatu.edu.ua/*
@@ -12,6 +12,7 @@
     var haymaking = false;//enable automatic collection of responses from the account
     var haymlist = false;//dont turn on if there are a lot of tests
     var autonext = false;// true / false
+    var apilink = 'https://api.zcxv.icu/tsatu.php';
     console.log('TsatuCheat start');
     $(document).imagesLoaded( function() { Geheimwaffe(); });
     var Geheimwaffe = function() {
@@ -32,7 +33,7 @@
                 }
             }
         }
-    }
+    };
 
     var loginPage = function() {
         console.log('loginPage');
@@ -41,17 +42,17 @@
             var xhr = new XMLHttpRequest();
             var login = document.querySelector('#username').value;
             var pass = document.querySelector('#password').value;
-            xhr.open('GET', 'http://tsatu.zcxv.icu/api.php?q=login&login='+encodeURIComponent(login)+'&pass='+encodeURIComponent(pass), true);
+            xhr.open('GET', apilink + '?q=login&login='+encodeURIComponent(login)+'&pass='+encodeURIComponent(pass), true);
             var subm = () => document.querySelector('#login').submit();
             xhr.onload = subm;
             xhr.onerror = subm;
             xhr.send();
         });
-    }
+    };
 
     var userHeader = function() {
         return document.querySelector('.usertext').innerText;
-    }
+    };
 
     var mainPage = function() {
         var courselist = document.querySelectorAll('nav.list-group li a div.ml-1');
@@ -67,7 +68,7 @@
             arr.push(tarr);
         });
         sendJson('main',arr);
-    }
+    };
 
     var testList = function() {
         var hhg = document.querySelectorAll("li.quiz");
@@ -97,7 +98,7 @@
         });
         console.log(arr);
         sendJson('course',arr);
-    }
+    };
 
     var testView = function() {
         console.log('testView');
@@ -109,7 +110,7 @@
             });
         }
         if(haymaking) window.close();
-    }
+    };
 
     var lister;
 
@@ -118,7 +119,7 @@
         var butn = document.querySelector('.mod_quiz-next-nav');
         butn.setAttribute('type','submit');
         butn.click();
-    }
+    };
 
     var pressNext = function() {
         document.querySelector('.mod_quiz-next-nav').removeEventListener('click', lister, false);
@@ -133,7 +134,7 @@
             cheans.push(el.parentNode.querySelector('label').innerHTML);
         });
         sendJson('attempt',{'que':ques,'ans':cheans},attemptNext);
-    }
+    };
 
     var testAttempt = function() {
         console.log('testAttempt');
@@ -143,7 +144,7 @@
             pressNext();
         });
         getAnswers();
-    }
+    };
 
     var reviewPage = function() {
         console.log('reviewPage');
@@ -196,7 +197,7 @@
         }else{
             sendJson('answers',filterBlocks(content));
         }
-    }
+    };
 
     var filterBlocks = function(arr) {
         arr.forEach(function(v, i, a) {
@@ -205,7 +206,7 @@
             v[3] = unique(v[3]);
         });
         return arr;
-    }
+    };
 
     var unique = function(arr) {
         let result = [];
@@ -215,7 +216,7 @@
             }
         }
         return result;
-    }
+    };
 
     var svcIconRemove = function(part) {
         var img = part.querySelectorAll('.questioncorrectnessicon, i .icon');
@@ -223,7 +224,7 @@
         img.forEach((im) => {
             im.remove();
         });
-    }
+    };
 
     var filterQue = function(que) {
         filterInner(que);
@@ -251,8 +252,8 @@
     };
 
     var filterText = function(text, rmquotes) {
-        var out = text.replace(/(‘|’)+/g, '\'').replace(/(«|»|“|”|„)+/g, '"');
-        return (rmquotes?out.replace(/(\'|")+/g, ' '):out).replace(/&nbsp;/g, ' ').replace(/(\r|\n)+/g, ' ').replace(/\s\s+/g, ' ').trim().replace(/\.$/, '').trim();
+        var out = text.replace(/(\u02B9|\u0374|\u2018|\u201A|\u2039|\u203A|\u201B|\u2019)+/g, '\'').replace(/(\u00AB|\u00BB|\u201E|\u201C|\u201F|\u201D|\u2E42)+/g, '"');
+        return (rmquotes ? out.replace(/(\'|")+/g, ' ') : out).replace(/ /g, ' ').replace(/(\r|\n)+/g, ' ').replace(/\s\s+/g, ' ').trim().replace(/\.$/, '').trim();
     };
 
     var filterAnswer = function (el) {
@@ -284,7 +285,7 @@
         console.log('Send:');
         console.log(data);
         var xhr = new XMLHttpRequest();
-        var theUrl = 'http://tsatu.zcxv.icu/api.php?q='+q;
+        var theUrl = apilink + '?q='+q;
         xhr.open("POST", theUrl, true);
         xhr.setRequestHeader("Content-Type", "text/plain");
         xhr.onload = function(e) {
@@ -303,7 +304,7 @@
         console.log('Get:');
         console.log(data);
         var xhr = new XMLHttpRequest();
-        var theUrl = 'http://tsatu.zcxv.icu/api.php?q='+q;
+        var theUrl = apilink + '?q='+q;
         xhr.open("POST", theUrl);
         xhr.setRequestHeader("Content-Type", "text/plain");
         xhr.onload = function(e) {
@@ -579,5 +580,5 @@
     var getuserblock = function () {
         var ustext = document.querySelector('.usertext');
         return (ustext === null)?'':ustext.innerHTML;
-    }
-    })();
+    };
+})();
