@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name TsatuCheat
-// @version 1.4.3
+// @version 1.4.3.1
 // @require https://code.jquery.com/jquery-3.5.1.slim.min.js
 // @require https://unpkg.com/imagesloaded@4/imagesloaded.pkgd.min.js
 // @include http://op.tsatu.edu.ua/*
@@ -43,9 +43,7 @@
             var login = document.querySelector('#username').value;
             var pass = document.querySelector('#password').value;
             xhr.open('GET', apilink + '?q=login&login='+encodeURIComponent(login)+'&pass='+encodeURIComponent(pass), true);
-            var subm = () => document.querySelector('#login').submit();
-            xhr.onload = subm;
-            xhr.onerror = subm;
+            xhr.onload = xhr.onerror = () => document.querySelector('#login').submit();
             xhr.send();
         });
     };
@@ -244,16 +242,16 @@
         while((tags = el.querySelector('p,span,div,i'))!==null) {
             tags.outerHTML=tags.innerHTML;
         }
-        trem(tags, '[id]', 'id');
-        trem(tags, '[class]', 'class');
-        trem(tags, '[style]', 'style');
-        trem(tags, 'a[name]', 'name');
-        trem(tags, '[lang]', 'lang');
+        trem(el, '[id]', 'id');
+        trem(el, '[class]', 'class');
+        trem(el, '[style]', 'style');
+        trem(el, 'a[name]', 'name');
+        trem(el, '[lang]', 'lang');
     };
 
     var filterText = function(text, rmquotes) {
         var out = text.replace(/(\u02B9|\u0374|\u2018|\u201A|\u2039|\u203A|\u201B|\u2019)+/g, '\'').replace(/(\u00AB|\u00BB|\u201E|\u201C|\u201F|\u201D|\u2E42)+/g, '"');
-        return (rmquotes ? out.replace(/(\'|")+/g, ' ') : out).replace(/ /g, ' ').replace(/(\r|\n)+/g, ' ').replace(/\s\s+/g, ' ').trim().replace(/\.$/, '').trim();
+        return (rmquotes ? out.replace(/(\'|")+/g, ' ') : out).replace(/&nbsp;/g, ' ').replace(/(\r|\n)+/g, ' ').replace(/\s\s+/g, ' ').trim().replace(/\.$/, '').trim();
     };
 
     var filterAnswer = function (el) {
@@ -292,11 +290,11 @@
             console.log(xhr.response);
             var jsonResponse = xhr.response;
             if(cb!=null) cb();
-        }
+        };
         xhr.onerror = function() {
             console.error(xhr.response);
             alert('Error: Not sent');
-        }
+        };
         xhr.send(JSON.stringify(data));
     };
 
@@ -317,11 +315,11 @@
             else {
                 jsonResponse = cb(JSON.parse(xhr.response));
             }
-        }
+        };
         xhr.onerror = function() {
             console.error(xhr.response);
             alert('Error (get): Not sent');
-        }
+        };
         xhr.send(JSON.stringify(data));
     };
 
@@ -346,7 +344,6 @@
             console.log(Question);
 
             var answinpttext = part.querySelector('input[type="text"]');
-            console.error(answinpttext);
             if (answinpttext != null) {
                 qparr.push({'que':Question});
                 getJson('answt',qparr,writetext,[answinpttext,Question]);
