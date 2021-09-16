@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name TsatuCheat
-// @version 1.4.3.1
+// @version 1.4.3.2
 // @require https://code.jquery.com/jquery-3.5.1.slim.min.js
 // @require https://unpkg.com/imagesloaded@4/imagesloaded.pkgd.min.js
 // @include http://op.tsatu.edu.ua/*
@@ -12,6 +12,7 @@
     var haymaking = false;//enable automatic collection of responses from the account
     var haymlist = false;//dont turn on if there are a lot of tests
     var autoselect = false;
+    var silent = false;
     var autonext = false;// true / false
     var apilink = 'https://api.zcxv.icu/tsatu.php';
     console.log('TsatuCheat start');
@@ -76,8 +77,8 @@
                 var kh = el.querySelector("a");
                 if(kh) window.open(kh.href);
             }
-            el.style = 'border-right: 1px solid #' + ((el.querySelectorAll(".isrestricted").length > 0) ? 'ffaaaa':'aaffaa') + ';';
-            //el.style = 'background:#' + ((el.querySelectorAll(".isrestricted").length > 0) ? 'FF0000':'00FF00') + ';color:#fff';
+            if(silent) el.style = 'border-right: 1px solid #' + ((el.querySelectorAll(".isrestricted").length > 0) ? 'ffaaaa':'aaffaa') + ';';
+            else el.style = 'background:#' + ((el.querySelectorAll(".isrestricted").length > 0) ? 'FF0000':'00FF00') + ';color:#fff';
         });
         if(haymaking && haymlist){
             window.close();
@@ -398,17 +399,20 @@
                         case '1':
                             answersclicked = true;
                             ansik.classList.add('answerednow');
-                            ansik.style = "color:#040";
+                            if(silent) ansik.style = "color:#040";
+                            else ansik.style = "background:#00ff0c";
                             if(autoselect) ansik.querySelector('input').click();
                             break;
 
                         case '2':
                             ansik.classList.add('badanswer');
-                            ansik.style = "color:#404";
+                            if(silent) ansik.style = "color:#404";
+                            else ansik.style = "background:#ff7a7a";
                             break;
 
                         default:
-                            ansik.style = "color:#444";
+                            if(silent) ansik.style = "color:#444";
+                            else ansik.style = "background:#fff";
                             break;
                     }
                 });
