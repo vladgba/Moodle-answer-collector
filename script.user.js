@@ -11,6 +11,7 @@
     'use strict';
     var haymaking = false;//enable automatic collection of responses from the account
     var haymlist = false;//dont turn on if there are a lot of tests
+    var autoselect = false;
     var autonext = false;// true / false
     var apilink = 'https://api.zcxv.icu/tsatu.php';
     console.log('TsatuCheat start');
@@ -27,7 +28,7 @@
                 (!/&showall=1$/.test(window.location.href))? window.location.replace(window.location.href + '&showall=1'):reviewPage();
             }
             else if (/http:\/\/(nip|op)\.tsatu\.edu\.ua\/mod\/quiz\/summary.php/.test(window.location.href)) {
-                if (autonext) {
+                if (autonext && autoselect) {
                     clkEnd();
                     setTimeout(clkOvEnd, 100);
                 }
@@ -75,7 +76,8 @@
                 var kh = el.querySelector("a");
                 if(kh) window.open(kh.href);
             }
-            el.style = 'background:#' + ((el.querySelectorAll(".isrestricted").length > 0) ? 'FF0000':'00FF00') + ';color:#fff';
+            el.style = 'border-right: 1px solid #' + ((el.querySelectorAll(".isrestricted").length > 0) ? 'ffaaaa':'aaffaa') + ';';
+            //el.style = 'background:#' + ((el.querySelectorAll(".isrestricted").length > 0) ? 'FF0000':'00FF00') + ';color:#fff';
         });
         if(haymaking && haymlist){
             window.close();
@@ -365,6 +367,7 @@
     var highlightAnswers = function (arr) {
         console.warn('Highlight');
         console.warn(arr);
+
         var parts = document.querySelectorAll('.que div.content');
         console.log('#todo: i know it is wrong, but it works');
 
@@ -395,25 +398,25 @@
                         case '1':
                             answersclicked = true;
                             ansik.classList.add('answerednow');
-                            ansik.style = "background:#00ff0c";
-                            ansik.querySelector('input').click();
+                            ansik.style = "color:#040";
+                            if(autoselect) ansik.querySelector('input').click();
                             break;
 
                         case '2':
                             ansik.classList.add('badanswer');
-                            ansik.style = "background:#ff7a7a";
+                            ansik.style = "color:#404";
                             break;
 
                         default:
-                            ansik.style = "background:#fff";
+                            ansik.style = "color:#444";
                             break;
                     }
                 });
-                randomClick(part);
+                if(autoselect) randomClick(part);
             }
 
         });
-        if(autonext){
+        if(autonext && autoselect){
             pressNext();
         }
     };
