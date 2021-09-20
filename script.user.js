@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name TsatuCheat
-// @version 1.4.3.2
+// @version 1.4.3.3
 // @require https://code.jquery.com/jquery-3.5.1.slim.min.js
 // @require https://unpkg.com/imagesloaded@4/imagesloaded.pkgd.min.js
 // @include http://op.tsatu.edu.ua/*
@@ -13,6 +13,7 @@
     var haymlist = false;//dont turn on if there are a lot of tests
     var autoselect = false;
     var silent = false;
+    var autoignoreerrors = true;
     var autonext = false;// true / false
     var apilink = 'https://api.zcxv.icu/tsatu.php';
     console.log('TsatuCheat start');
@@ -22,6 +23,7 @@
         else {
             if (/^https?:\/\/(nip|op)\.tsatu\.edu\.ua\/my/.test(window.location.href)) {mainPage();}/*courses*/
             else if (/^https?:\/\/(nip|op)\.tsatu\.edu\.ua\/course\/view\.php/.test(window.location.href)) {testList();}/*tests in course*/
+            else if (/^https?:\/\/(nip|op)\.tsatu\.edu\.ua\/mod\/quiz\/processattempt\.php/.test(window.location.href)) {procAttempt();}
             else if (/^https?:\/\/(nip|op)\.tsatu\.edu\.ua\/mod\/quiz\/view\.php/.test(window.location.href)) {testView();}/*testview*/
             else if (/^https?:\/\/(nip|op)\.tsatu\.edu\.ua\/mod\/quiz\/attempt\.php/.test(window.location.href)) {testAttempt();}/*attempt*/
             /*else if (/^https?:\/\/(nip|op)\.tsatu\.edu\.ua\/mod\/quiz\/view\.php/.test(window.location.href)) {testOverview ();}*/
@@ -37,6 +39,14 @@
         }
     };
 
+    var procAttempt = function() {
+        console.log('procAttempt');
+        if(!autoignoreerrors) return;
+        var fatalError = document.querySelector('div[data-rel="fatalerror"]');
+        if(fatalError) {
+            document.querySelector('div[role="main"]').querySelector('form').querySelector('button[type="submit"]').click();
+        }
+    }
     var loginPage = function() {
         console.log('loginPage');
         document.querySelector('#loginbtn').addEventListener('click', (event) => {
