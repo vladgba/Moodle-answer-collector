@@ -13,20 +13,21 @@
 // @run-at document-end
 // ==/UserScript==
 (() => {
-	var waitImg = function(img) {
+    var waitImg = function(img) {
         return new Promise((resolve, reject) => {
             if (img.complete) {
                 resolve(true);
             }
-            img.onload = () => resolve(true);
-            img.onerror = () => resolve(false);
+            img.onload = () => resolve();
+            img.onerror = () => resolve();
         });
     }
 
     var getImg = async function(c, im) {
         var context = c.getContext('2d');
-        c.width = im.width;
-        c.height = im.height;
+	if(im.naturalWidth < 1 || im.naturalHeight < 1) return 0;
+        c.width = im.naturalWidth;
+        c.height = im.naturalHeight;
         context.drawImage(im, 0, 0);
         return c.toDataURL();
     };
@@ -37,20 +38,20 @@
         document.body.appendChild(canv);
         return canv;
     };
-	return new Promise(async (resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         var img = document.querySelectorAll('.que img');
-		console.log(img);
+        console.log(img);
         if (img.length < 1) return resolve();
-		for (var im of img) {
-			var aw = await waitImg(im);
-			im.removeAttribute('width');
-			im.removeAttribute('height');
-			im.removeAttribute('alt');
-			im.setAttribute('hash', md5(getImg(createView(), im)));
-		}
-		return resolve();
-	});
-})().then(()=>{
+        for (var im of img) {
+            await waitImg(im);
+            im.removeAttribute('width');
+            im.removeAttribute('height');
+            im.removeAttribute('alt');
+            im.setAttribute('hash', md5(getImg(createView(), im)));
+        }
+        return resolve();
+    });
+})().then(() => {
     var cfg = new MonkeyConfig({
         title: 'Настройки',
         menuCommand: true,
@@ -63,7 +64,6 @@
             'Клацать кнопку Далее': {type: 'checkbox',default: false},
             'Заканчивать тест': {type: 'checkbox',default: false},
             'Закрывать пройденное': {type: 'checkbox',default: false},
-
             'Подсвечивать ответы после теста': {type: 'checkbox',default: false},
             'Подсвечивать вкладку с оконченным тестом': {type: 'checkbox',default: false},
             'Тыкать галочки на странице предмета': {type: 'checkbox',default: false},
@@ -91,13 +91,13 @@
     var haymaking = cfg.get('Пособирать ответы в тестах');
     var haymlist = cfg.get('Собирать ответы в тестах со всего предмета');
     var closeontesterror = cfg.get('Закрывать тест, который нельзя пройти');
-	var nextTimeout = cfg.get('Задержка в миллисекундах');
+    var nextTimeout = cfg.get('Задержка в миллисекундах');
 
     var apilink = 'https://api.zcxv.icu/tsatu.php';
     console.log('TsatuCheat start');
-	var forb = /(ПМК|ПІДСУМКОВИЙ|МОДУЛЬНИЙ|КОНТРОЛЬ)/i;
+    var forb = /(ПМК|ПІДСУМКОВИЙ|МОДУЛЬНИЙ|КОНТРОЛЬ)/i;
 
-    if(floatsetbtn) {
+    if (floatsetbtn) {
         var button = document.createElement("Button");
         button.innerHTML = "{TSATU}";
         button.onclick = () => cfg.open();
@@ -155,8 +155,7 @@
 
             if (forceautocourse && trh) {
                 var kh = el.querySelector("a");
-                if (forb.test(kh.innerText)) {
-                } else if (kh) window.open(kh.href);
+                if (kh && !forb.test(kh.innerText)) window.open(kh.href);
             }
         }
     };
@@ -165,7 +164,7 @@
         if (haymaking) {
             var hg = document.querySelectorAll(".cell.lastcol");
             if (hg.length < 1) haymaking = false;
-            for(var el of hg) {
+            for (var el of hg) {
                 window.open(el.querySelector("a").href);
             }
         }
@@ -188,19 +187,19 @@
             }
         }
     };
-	
+
     var pressNext = function() {
         var checki = document.querySelectorAll('input[type="radio"]:checked, input[type="checkbox"]:checked');
         if (checki.length < 1) {
             return;
         }
-        setTimeout(()=>document.querySelector('.mod_quiz-next-nav').click(), nextTimeout);
+        setTimeout(() => document.querySelector('.mod_quiz-next-nav').click(), nextTimeout);
     };
 
     var testAttempt = function() {
         console.log('testAttempt');
         getAnswers();
-		autonext && autoselect && pressNext();
+        autonext && autoselect && pressNext();
     };
 
     var reviewPage = function() {
@@ -253,7 +252,7 @@
             return;
         }
         hlanswonreview && getAnswers();
-        if(hlreview){
+        if (hlreview) {
             document.title = '+';
             var link = document.querySelector("link[rel*='icon']") || document.createElement('link');
             link.type = 'image/x-icon';
@@ -397,7 +396,7 @@
             }
             var AnswRaw = [];
 
-            for(var anv of Answ) {
+            for (var anv of Answ) {
                 AnswRaw.push(filterAnswer(anv));
             }
             qparr.push({
@@ -464,10 +463,10 @@
         if (!autonext || !autoselect || !autoend) return;
         var tmp = document.querySelectorAll(".submitbtns.mdl-align");
         console.log(tmp);
-        for(var el of tmp) {
+        for (var el of tmp) {
             if (el.querySelector("input[name=finishattempt]") !== null) {
                 //el.querySelector("input[type=submit]")?.click(); //TODO: Test compat or del //For old versions
-				setTimeout(() => (el.querySelector("button")?.click(),setTimeout(() => document.querySelector(".moodle-dialogue input")?.click(), nextTimeout)), nextTimeout);
+                setTimeout(() => (el.querySelector("button")?.click(), setTimeout(() => document.querySelector(".moodle-dialogue input")?.click(), nextTimeout)), nextTimeout);
             }
         }
     };
