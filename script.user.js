@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name TsatuCheat
 // @description Moodle answer collector
-// @version 1.4.4.0
+// @version 1.4.4.3
 // @require https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.19.0/js/md5.min.js
-// @require https://raw.github.com/odyniec/MonkeyConfig/master/monkeyconfig.js
+// @require https://raw.githubusercontent.com/vladgba/MonkeyConfig/master/monkeyconfig.js
 // @include http://op.tsatu.edu.ua/*
 // @grant window.close
 // @grant GM_getValue
@@ -21,16 +21,17 @@
             img.onload = () => resolve();
             img.onerror = () => resolve();
         });
-    }
+    };
 
-    var getImg = async function(c, im) {
+    var getImg = function(c, im) {
         var context = c.getContext('2d');
-	if(im.naturalWidth < 1 || im.naturalHeight < 1) return 0;
+        if(im.naturalWidth<1) return 0;
         c.width = im.naturalWidth;
         c.height = im.naturalHeight;
         context.drawImage(im, 0, 0);
         return c.toDataURL();
     };
+
     var createView = function() {
         var canv = document.createElement("canvas");
         canv.id = 'canv';
@@ -38,6 +39,7 @@
         document.body.appendChild(canv);
         return canv;
     };
+
     return new Promise(async (resolve, reject) => {
         var img = document.querySelectorAll('.que img');
         console.log(img);
@@ -55,48 +57,29 @@
     var cfg = new MonkeyConfig({
         title: 'Настройки',
         menuCommand: true,
-        params: {
-            'Плавающая кнопка настроек': {type: 'checkbox',default: false},
-            'Скрытный режим': {type: 'checkbox',default: true},
-            'Игнор ошибок': {type: 'checkbox',default: true},
-            'Стартовать и перепроходить тесты': {type: 'checkbox',default: false},
-            'Выбирать правильный ответ': {type: 'checkbox',default: true},
-            'Клацать кнопку Далее': {type: 'checkbox',default: false},
-            'Заканчивать тест': {type: 'checkbox',default: false},
-            'Закрывать пройденное': {type: 'checkbox',default: false},
-            'Подсвечивать ответы после теста': {type: 'checkbox',default: false},
-            'Подсвечивать вкладку с оконченным тестом': {type: 'checkbox',default: false},
-            'Тыкать галочки на странице предмета': {type: 'checkbox',default: false},
-            'Открывать все тесты на курсе в новой вкладке': {type: 'checkbox',default: false},
-            'Пособирать ответы в тестах': {type: 'checkbox',default: false},
-            'Собирать ответы в тестах со всего предмета': {type: 'checkbox',default: false},
-            'Закрывать тест, который нельзя пройти': {type: 'checkbox',default: false},
-            'Задержка в миллисекундах': {type: 'number',default: 300},
-        }
     });
-
-    var floatsetbtn = cfg.get('Плавающая кнопка настроек');
-    var silent = cfg.get('Скрытный режим');
-    var autoignoreerrors = cfg.get('Игнор ошибок');
-    var forceauto = cfg.get('Стартовать и перепроходить тесты');
-    var autoselect = cfg.get('Выбирать правильный ответ');
-    var autonext = cfg.get('Клацать кнопку Далее');
-    var autoend = cfg.get('Заканчивать тест');
-    var autoclose = cfg.get('Закрывать пройденное');
-
-    var hlanswonreview = cfg.get('Подсвечивать ответы после теста');
-    var hlreview = cfg.get('Подсвечивать вкладку с оконченным тестом');
-    var automark = cfg.get('Тыкать галочки на странице предмета');
-    var forceautocourse = cfg.get('Открывать все тесты на курсе в новой вкладке');
-    var haymaking = cfg.get('Пособирать ответы в тестах');
-    var haymlist = cfg.get('Собирать ответы в тестах со всего предмета');
-    var closeontesterror = cfg.get('Закрывать тест, который нельзя пройти');
-    var nextTimeout = cfg.get('Задержка в миллисекундах');
+    var _ = undefined;
+    var floatsetbtn = cfg.get('Плавающая кнопка настроек', _, true);
+    var silent = cfg.get('Скрытный режим', _, false);
+    var autoignoreerrors = cfg.get('Игнор ошибок', _, true);
+    var forceauto = cfg.get('Стартовать и перепроходить тесты', _, false);
+    var autoselect = cfg.get('Выбирать правильный ответ', _, true);
+    var autonext = cfg.get('Клацать кнопку Далее', _, false);
+    var autoend = cfg.get('Заканчивать тест', _, false);
+    var autoclose = cfg.get('Закрывать пройденное', _, false);
+    var hlanswonreview = cfg.get('Подсвечивать ответы после теста', _, false);
+    var hlreview = cfg.get('Подсвечивать вкладку с оконченным тестом', _, true);
+    var automark = cfg.get('Тыкать галочки на странице предмета', _, false);
+    var forceautocourse = cfg.get('Открывать все тесты на курсе в новой вкладке', _, false);
+    var haymaking = cfg.get('Пособирать ответы в тестах', _, false);
+    var haymlist = cfg.get('Собирать ответы в тестах со всего предмета', _, false);
+    var closeontesterror = cfg.get('Закрывать тест, который нельзя пройти', _, false);
+    var nextTimeout = cfg.get('Задержка в миллисекундах', 'number', 300);
 
     var apilink = 'https://api.zcxv.icu/tsatu.php';
+    var answersclicked = false;
     console.log('TsatuCheat start');
     var forb = /(ПМК|ПІДСУМКОВИЙ|МОДУЛЬНИЙ|КОНТРОЛЬ)/i;
-
     if (floatsetbtn) {
         var button = document.createElement("Button");
         button.innerHTML = "{TSATU}";
@@ -104,12 +87,14 @@
         button.style = "top:2px;left:40%;position:fixed;z-index: 9999"
         document.body.appendChild(button);
     }
+
     var procAttempt = function() {
         if (!autoignoreerrors) return;
         if (document.querySelector('div[data-rel="fatalerror"]')) {
             document.querySelector('div[role="main"] form button[type="submit"]').click();
         }
-    }
+    };
+
     var loginPage = function() {
         document.querySelector('#loginbtn').addEventListener('click', (event) => {
             event.preventDefault();
@@ -146,16 +131,18 @@
     };
 
     var gradeList = function() {
-        var hhg = document.querySelectorAll('table.user-grade a img[alt="Quiz"], table.user-grade a img[alt="Тест"]');
+        var hhg = document.querySelectorAll('table.user-grade img[src*="/quiz/"]');
         for (var el of hhg) {
+            var chk = (el, v) => (el.querySelector("td.column-percentage").innerText == v);
+            var elu = el.parentNode.tagName == 'A';
             el = el.parentNode.parentNode.parentElement;
-            var trh = el.querySelector("td.column-percentage").innerText != '100.00 %' && el.querySelector("td.column-percentage").innerText != '100,00 %';
-            if (silent) el.style = 'border-right: 1px solid #' + (trh ? 'ffaaaa' : 'aaffaa') + ';';
-            else el.style = 'background:#' + (trh ? 'FF0000' : '00FF00') + ';color:#fff';
-
-            if (forceautocourse && trh) {
+            var trh = chk(el, '100.00 %') || chk(el, '100,00 %'); //fullfilled
+            var trb = chk(el, '-') || chk(el, '0.00 %') || chk(el, '0,00 %'); //nullfilled
+            if (silent) el.style = 'border-right: 1px solid #' + (trh ? 'aaffaa' : 'ffaaaa') + ';';
+            else el.style = 'background:#' + (trh ? '00FF00' : (trb ? (elu ? '0000FF' : '000') : 'deea02')) + ';color:#fff';
+            if (forceautocourse && trb && elu) {
                 var kh = el.querySelector("a");
-                if (kh && !forb.test(kh.innerText)) window.open(kh.href);
+                if (!forb.test(kh.innerText) && kh) window.open(kh.href);
             }
         }
     };
@@ -190,16 +177,13 @@
 
     var pressNext = function() {
         var checki = document.querySelectorAll('input[type="radio"]:checked, input[type="checkbox"]:checked');
-        if (checki.length < 1) {
-            return;
-        }
+        if (checki.length < 1) return;
         setTimeout(() => document.querySelector('.mod_quiz-next-nav').click(), nextTimeout);
     };
 
     var testAttempt = function() {
         console.log('testAttempt');
         getAnswers();
-        autonext && autoselect && pressNext();
     };
 
     var reviewPage = function() {
@@ -384,7 +368,6 @@
             var Quest = part.querySelector('.formulation .qtext');
             var Answ = part.querySelectorAll('.formulation .r0, .formulation .r1');
             var Question = filterQue(Quest);
-
             var answinpttext = part.querySelector('input[type="text"]');
             if (answinpttext != null) {
                 qparr.push({
@@ -395,7 +378,6 @@
                 return;
             }
             var AnswRaw = [];
-
             for (var anv of Answ) {
                 AnswRaw.push(filterAnswer(anv));
             }
@@ -406,8 +388,6 @@
         }
         get && getJson('answ', qparr, highlightAnswers, parts);
     };
-
-    var answersclicked = false;
 
     var highlightAnswers = function(arr, parts) {
         for (var part of parts) {
@@ -445,6 +425,7 @@
                 autoselect && randomClick(part);
             }
         }
+        autonext && autoselect && pressNext();
     };
 
     var randomClick = function(part) {
@@ -461,6 +442,7 @@
 
     var endBtns = function() {
         if (!autonext || !autoselect || !autoend) return;
+        if(document.querySelectorAll("#mod_quiz_navblock .card-text a.notyetanswered").length>0) return;
         var tmp = document.querySelectorAll(".submitbtns.mdl-align");
         console.log(tmp);
         for (var el of tmp) {
