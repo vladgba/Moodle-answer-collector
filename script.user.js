@@ -13,47 +13,6 @@
 // @run-at document-end
 // ==/UserScript==
 (() => {
-    var waitImg = function(img) {
-        return new Promise((resolve, reject) => {
-            if (img.complete) {
-                resolve(true);
-            }
-            img.onload = () => resolve();
-            img.onerror = () => resolve();
-        });
-    };
-
-    var getImg = function(c, im) {
-        var context = c.getContext('2d');
-        if(im.naturalWidth<1) return 0;
-        c.width = im.naturalWidth;
-        c.height = im.naturalHeight;
-        context.drawImage(im, 0, 0);
-        return c.toDataURL();
-    };
-
-    var createView = function() {
-        var canv = document.createElement("canvas");
-        canv.id = 'canv';
-        canv.style = "border:black solid;display:none;";
-        document.body.appendChild(canv);
-        return canv;
-    };
-
-    return new Promise(async (resolve, reject) => {
-        var img = document.querySelectorAll('.que img');
-        console.log(img);
-        if (img.length < 1) return resolve();
-        for (var im of img) {
-            await waitImg(im);
-            im.removeAttribute('width');
-            im.removeAttribute('height');
-            im.removeAttribute('alt');
-            im.setAttribute('hash', md5(getImg(createView(), im)));
-        }
-        return resolve();
-    });
-})().then(() => {
     var cfg = new MonkeyConfig({
         title: 'Настройки',
         menuCommand: true,
@@ -83,7 +42,16 @@
     if (floatsetbtn) {
         var button = document.createElement("Button");
         button.innerHTML = "{TSATU}";
-        button.onclick = () => cfg.open();
+        button.onclick = () => cfg.open({
+            windowFeatures: {
+                location: 'no',
+                status: 'no',
+                left: window.screenX,
+                top: window.screenY,
+                width: 500,
+                height: 800
+            }
+        });
         button.style = "top:2px;left:40%;position:fixed;z-index: 9999"
         document.body.appendChild(button);
     }
@@ -444,7 +412,6 @@
         if (!autonext || !autoselect || !autoend) return;
         if(document.querySelectorAll("#mod_quiz_navblock .card-text a.notyetanswered").length>0) return;
         var tmp = document.querySelectorAll(".submitbtns.mdl-align");
-        console.log(tmp);
         for (var el of tmp) {
             if (el.querySelector("input[name=finishattempt]") !== null) {
                 //el.querySelector("input[type=submit]")?.click(); //TODO: Test compat or del //For old versions
@@ -464,5 +431,44 @@
         '/mod/quiz/summary.php': endBtns
     };
 
-    routes[window.location.pathname] && routes[window.location.pathname]();
-});
+    var waitImg = function(img) {
+        return new Promise((resolve, reject) => {
+            if (img.complete) {
+                resolve(true);
+            }
+            img.onload = () => resolve();
+            img.onerror = () => resolve();
+        });
+    };
+
+    var getImg = function(c, im) {
+        var context = c.getContext('2d');
+        if(im.naturalWidth<1) return 0;
+        c.width = im.naturalWidth;
+        c.height = im.naturalHeight;
+        context.drawImage(im, 0, 0);
+        return c.toDataURL();
+    };
+
+    var createView = function() {
+        var canv = document.createElement("canvas");
+        canv.id = 'canv';
+        canv.style = "border:black solid;display:none;";
+        document.body.appendChild(canv);
+        return canv;
+    };
+
+    (new Promise(async (resolve, reject) => {
+        var img = document.querySelectorAll('.que img');
+        console.log(img);
+        if (img.length < 1) return resolve();
+        for (var im of img) {
+            await waitImg(im);
+            im.removeAttribute('width');
+            im.removeAttribute('height');
+            im.removeAttribute('alt');
+            im.setAttribute('hash', md5(getImg(createView(), im)));
+        }
+        return resolve();
+    })).then(() => routes[window.location.pathname] && routes[window.location.pathname]());
+})();
