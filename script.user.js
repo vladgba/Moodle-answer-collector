@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name TsatuCheat
 // @description Moodle answer collector
-// @version 1.4.4.3
+// @version 1.4.4.4
 // @require https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.19.0/js/md5.min.js
 // @require https://raw.githubusercontent.com/vladgba/MonkeyConfig/master/monkeyconfig.js
 // @include http://op.tsatu.edu.ua/*
@@ -56,6 +56,16 @@
         document.body.appendChild(button);
     }
 
+    function chooseVal(dd,val){
+        val = filterSelText(val?.trim());
+        for (var i = 0; i < dd.options.length; i++) {
+        var optsel = filterSelText(dd.options[i].text)?.trim();
+            if (optsel === val) {
+                dd.selectedIndex = i;
+                break;
+            }
+        }
+    }
     var procAttempt = function() {
         if (!autoignoreerrors) return;
         if (document.querySelector('div[data-rel="fatalerror"]')) {
@@ -144,8 +154,13 @@
     };
 
     var pressNext = function() {
-        var checki = document.querySelectorAll('input[type="radio"]:checked, input[type="checkbox"]:checked');
-        if (checki.length < 1) return;
+        var checki = document.querySelectorAll('.que .content input[type="radio"]:checked, .que .content input[type="checkbox"]:checked');
+        var checkif = document.querySelectorAll('.que .content input[type="radio"], .que .content input[type="checkbox"]');
+        var selects = document.querySelectorAll('.que .content select');
+        for(var bsel of selects) {
+            if(bsel.value == 0) return;
+        }
+        if (checkif.length > 0 && checki.length < 1) return;
         setTimeout(() => document.querySelector('.mod_quiz-next-nav').click(), nextTimeout);
     };
 
@@ -153,7 +168,6 @@
         console.log('testAttempt');
         getAnswers();
     };
-
     var reviewPage = function() {
         if (!/&showall=1$/.test(location.href)) {
             return location.replace(window.location.href + '&showall=1');
@@ -163,40 +177,82 @@
         var Questions = document.querySelectorAll('.que');
         for (var part of Questions) {
             svcIconRemove(part);
+            var quesss = [];
             var ans = [];
             var Question = filterQue(part.querySelector('.formulation .qtext'));
             var Answers = part.querySelectorAll('.formulation .r0, .formulation .r1');
             var RightAnswered = [];
             var NonRightAnswered = [];
-            for (var el of Answers) {
-                var answ = filterAnswer(el);
-                if (el.classList.contains('incorrect')) {
-                    NonRightAnswered.push(answ);
+
+            var Selects = part.querySelectorAll('select').length;
+            console.log(Selects);
+            console.log(22);
+            if(Selects) {
+                var tbl = part.querySelectorAll('table tr');
+                console.warn('tbl');
+                console.warn(tbl);
+                let RightAnswer = filterSelRightanswer(part.querySelector('.rightanswer')).replace(/\n/,'').replace(/\s+/,' ');
+                for(var ptt of tbl) {
+                    var que = filterSelText(ptt.querySelector('td:first-child').innerText).replace(/\n/,'').replace(/\s+/,' ');
+                    quesss.push(que);
+                    var quename = ((quesss[quesss.length-1])).trim() + ' →';
+                    console.log('quename');
+                    console.log(quename);
+                    var quenum = '[[' + (quesss.length-1) + ']]';
+                    console.log('quenum');
+                    console.log(quenum);
+                    RightAnswer = RightAnswer.replace(quename, quenum);
+                    console.log('RA-chng');
+                    console.log(RightAnswer);
+                    let answ = ptt.querySelectorAll('td select');
+
                 }
-                if (el.classList.contains('correct')) {
-                    RightAnswered.push(answ);
+                console.log('------------');
+                console.log('RightAnswer');
+                console.log(RightAnswer);
+                var fres = RightAnswer.split('[[');
+                fres.shift();
+                console.log('fres');
+                console.log(fres);
+                var result = [];
+                for(var fone of fres) {
+                    var lastres = fone.replace(/[.,](\s+)?$/,'').split(']]');
+                    console.log('lastres');
+                    console.log(lastres);
+                    result.push(filterSelText(quesss[lastres[0]].trim() + ':://::' + lastres[1].trim()));
                 }
-                if (el.querySelector('input[checked="checked"]')) {
-                    var grade = part.querySelector('.grade').innerHTML;
-                    if ((grade.localeCompare('Балів 1,00 з 1,00')) == 0 || (grade.localeCompare('Mark 1.00 out of 1.00')) == 0) {
-                        RightAnswered.push(answ);
+                console.log('result');
+                console.log(result);
+                console.log('quesss');
+                console.log(quesss);
+
+                console.warn([Question, [], result, []]);
+                content.push([Question, [], result, []]);
+            } else {
+                for (var el of Answers) {
+                    let answ = filterAnswer(el);
+                    if (el.classList.contains('incorrect')) NonRightAnswered.push(answ);
+                    if (el.classList.contains('correct')) RightAnswered.push(answ);
+                    if (el.querySelector('input[checked="checked"]')) {
+                        var grade = part.querySelector('.grade').innerHTML;
+                        if ((grade.localeCompare('Балів 1,00 з 1,00')) == 0 || (grade.localeCompare('Mark 1.00 out of 1.00')) == 0) {
+                            RightAnswered.push(answ);
+                        }
+                        if ((grade.localeCompare('Балів 0,00 з 1,00')) == 0 || (grade.localeCompare('Mark 0.00 out of 1.00')) == 0) {
+                            NonRightAnswered.push(answ);
+                        }
                     }
-                    if ((grade.localeCompare('Балів 0,00 з 1,00')) == 0 || (grade.localeCompare('Mark 0.00 out of 1.00')) == 0) {
-                        NonRightAnswered.push(answ);
-                    }
+                    ans.push(answ);
                 }
-                ans.push(answ);
+                let RightAnswer = part.querySelector('.rightanswer');
+                if (RightAnswer) RightAnswered.push(filterRightanswer(RightAnswer));
+                console.warn([Question, ans, RightAnswered, NonRightAnswered]);
+                content.push([Question, ans, RightAnswered, NonRightAnswered]);
             }
-            var RightAnswer = part.querySelector('.rightanswer');
-            if (RightAnswer) {
-                RightAnswered.push(filterRightanswer(RightAnswer));
-            }
-            console.warn([Question, ans, RightAnswered, NonRightAnswered]);
-            content.push([Question, ans, RightAnswered, NonRightAnswered]);
         }
         sendJson('answers', filterBlocks(content), haymaking ? window.close : null);
         if (forceauto) {
-            if (document.querySelector('#mod_quiz_navblock > div.card-body > div.card-text > div.allquestionsononepage > a.incorrect')) {
+            if (document.querySelector('#mod_quiz_navblock > div.card-body > div.card-text > div.allquestionsononepage > a.partiallycorrect, #mod_quiz_navblock > div.card-body > div.card-text > div.allquestionsononepage > a.incorrect')) {
                 document.querySelector('#page-navbar ol > li:last-child > a').click();
             } else {
                 autoclose && window.close();
@@ -260,6 +316,12 @@
         trem(el, 'lang');
     };
 
+    var filterSelText = function(text, rmquotes = false) {
+        if(!text) return text;
+        var out = text.replace(/(\u02B9|\u0374|\u2018|\u201A|\u2039|\u203A|\u201B|\u2019)+/g, '\'').replace(/(\u00AB|\u00BB|\u201E|\u201C|\u201F|\u201D|\u2E42)+/g, '"');
+        return (rmquotes ? out.replace(/(\'|")+/g, ' ') : out).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\u00A0/g, ' ').replace(/&nbsp;/g, ' ').replace(/(\r|\n)+/g, ' ').replace(/\s\s+/g, ' ').trim();
+    };
+
     var filterText = function(text, rmquotes) {
         var out = text.replace(/(\u02B9|\u0374|\u2018|\u201A|\u2039|\u203A|\u201B|\u2019)+/g, '\'').replace(/(\u00AB|\u00BB|\u201E|\u201C|\u201F|\u201D|\u2E42)+/g, '"');
         return (rmquotes ? out.replace(/(\'|")+/g, ' ') : out).replace(/&nbsp;/g, ' ').replace(/(\r|\n)+/g, ' ').replace(/\s\s+/g, ' ').trim().replace(/\.$/, '').trim();
@@ -273,14 +335,23 @@
         return filterText(a.replace(/^([a-z])\. /, ''));
     };
 
-    var filterRightanswer = function(text) {
+    var filterRightanswer = function(text, f = false) {
         filterInner(text);
-        var res = filterText(text.innerHTML);
+        var res = (f ? filterSelText(text.innerHTML) : filterText(text.innerHTML));
         res = res.replace(new RegExp('Правильна відповідь: '), '').replace(new RegExp('Ваша відповідь (не )?правильна'), '');
         res = res.replace(new RegExp('Правильні відповіді: '), '');
         res = res.replace(new RegExp('The correct answer is: '), '');
         res = res.replace(new RegExp('The correct answers are: '), '');
-        return res.replace(/^([a-z])\. /, '').trim().replace(/\.$/, '');
+        return res.trim();
+    };
+    var filterSelRightanswer = function(text, f = false) {
+        filterInner(text);
+        var res = filterSelText(text.innerText);
+        res = res.replace(new RegExp('Правильна відповідь: '), '').replace(new RegExp('Ваша відповідь (не )?правильна'), '');
+        res = res.replace(new RegExp('Правильні відповіді: '), '');
+        res = res.replace(new RegExp('The correct answer is: '), '');
+        res = res.replace(new RegExp('The correct answers are: '), '');
+        return res.trim();
     };
 
     var detectMultiAnswer = function(answer) {
@@ -294,7 +365,7 @@
         console.log('Send:');
         console.log(data);
         var xhr = new XMLHttpRequest();
-        var theUrl = apilink + '?q=' + q;
+        var theUrl = apilink + '?v=2&q=' + q;
         xhr.open("POST", theUrl, true);
         xhr.setRequestHeader("Content-Type", "text/plain");
         xhr.onload = function(e) {
@@ -310,13 +381,15 @@
         console.log('Get:');
         console.log(data);
         var xhr = new XMLHttpRequest();
-        var theUrl = apilink + '?q=' + q;
+        var theUrl = apilink + '?v=2&q=' + q;
         xhr.open("POST", theUrl);
         xhr.setRequestHeader("Content-Type", "text/plain");
         xhr.onload = () => {
             console.log('Response:');
-            console.log(xhr.response);
-            var jsonResponse = cb(JSON.parse(xhr.response), cbdat);
+            var otv = xhr.response;
+            console.log(otv);
+            var resultGet = JSON.parse(xhr.response);
+            var jsonResponse = cb(resultGet, cbdat);
         };
         xhr.onerror = () => alert('Get: NetworkError');
         xhr.send(JSON.stringify(data));
@@ -332,15 +405,14 @@
         var qparr = [];
         var get = true;
         for (var part of parts) {
+            var Selects = part.querySelector('select');
             svcIconRemove(part);
             var Quest = part.querySelector('.formulation .qtext');
             var Answ = part.querySelectorAll('.formulation .r0, .formulation .r1');
             var Question = filterQue(Quest);
             var answinpttext = part.querySelector('input[type="text"]');
             if (answinpttext != null) {
-                qparr.push({
-                    'que': Question
-                });
+                qparr.push({ 'que': Question });
                 getJson('answt', qparr, writetext, [answinpttext, Question]);
                 get = false;
                 return;
@@ -351,46 +423,78 @@
             }
             qparr.push({
                 'que': Question,
-                'answ': JSON.stringify(AnswRaw)
+                'answ': (Selects ? ['Select'] : JSON.stringify(AnswRaw))
             });
         }
         get && getJson('answ', qparr, highlightAnswers, parts);
     };
+    var randomSelection = function(part) {
+        var selected = part.querySelectorAll("select");
+        console.log(selected);
+        if (selected.length > 1) {
+            for(var sf of selected){
+                sf.selectedIndex = Math.floor(Math.random() * (sf.length-1))+1;
+            }
+        }
+    }
 
     var highlightAnswers = function(arr, parts) {
         for (var part of parts) {
+            answersclicked = false;
             if (arr.length > 0) {
                 var answShift = arr.shift();
-                if (!answShift || answShift.length < 1) return;
-                if (false && answShift[0].localeCompare('text') == 0) {
-                    var blockdd = document.createElement("p");
-                    blockdd.innerHTML = answShift[1];
-                    part.insertBefore(blockdd, part.firstChild);
-                    return;
-                }
-                var Answers = part.querySelectorAll('.formulation .r0, .formulation .r1');
-                for (var ansik of Answers) {
-                    if (ansik.length < 1) {
-                        return alert('HL: ');
+                console.warn(answShift);
+                if(typeof answShift === 'string') {
+                    if(answShift === 'idontfindselects'){
+                        randomSelection(part);
+                    } else {
+                        var Kparts = answShift.split('@@##@@');
+                        var Mparts = {};
+                        for(var Ki of Kparts){
+                            var Kio = Ki.split(':://::');
+                            Mparts[Kio[0]] = Kio[1];
+                        }
+                        console.log(Mparts);
+
+                        var tbl = part.querySelectorAll('table tr');
+                        for(var ptt of tbl) {
+                            var que = filterSelText(ptt.querySelector('td:first-child').innerText.replace(/\n/,'').replace(/\s+/,' ')).trim();
+                            let answ = ptt.querySelector('td select');
+                            chooseVal(answ, Mparts[que]);
+                        }
                     }
-                    var righte = answShift.shift();
-                    switch (righte) {
-                        case '1':
-                            answersclicked = true;
-                            ansik.classList.add('answerednow');
-                            ansik.style = silent ? "color:#040" : "background:#00ff0c";
-                            if (autoselect) ansik.querySelector('input').click();
-                            break;
-                        case '2':
-                            ansik.classList.add('badanswer');
-                            ansik.style = silent ? "color:#404" : "background:#ff7a7a";
-                            break;
-                        default:
-                            ansik.style = silent ? "color:#444" : "background:#fff";
-                            break;
+                } else {
+                    if (!answShift || answShift.length < 1) return;
+                    if (answShift[0] === 'text') {
+                        var blockdd = document.createElement("p");
+                        blockdd.innerHTML = answShift[1];
+                        part.insertBefore(blockdd, part.firstChild);
+                        return;
                     }
+                    var Answers = part.querySelectorAll('.formulation .r0, .formulation .r1');
+                    for (var ansik of Answers) {
+                        if (ansik.length < 1) {
+                            return alert('HL: ');
+                        }
+                        var righte = answShift.shift();
+                        switch (righte) {
+                            case '1':
+                                answersclicked = true;
+                                ansik.classList.add('answerednow');
+                                ansik.style = silent ? "color:#040" : "background:#00ff0c";
+                                var currinp = ansik.querySelector('input:not([type="hidden"])');
+                                if (autoselect && !currinp.checked) currinp.click();
+                                break;
+                            case '2':
+                                ansik.classList.add('badanswer');
+                                ansik.style = silent ? "color:#404" : "background:#ff7a7a";
+                                break;
+                            default:
+                                ansik.style = silent ? "color:#444" : "background:#fff";
+                        }
+                    }
+                    autoselect && randomClick(part);
                 }
-                autoselect && randomClick(part);
             }
         }
         autonext && autoselect && pressNext();
@@ -400,8 +504,12 @@
         console.warn('Random');
         if (!answersclicked) {
             var selected = part.querySelectorAll(".r0:not(.badanswer) [type=radio],.r1:not(.badanswer) [type=radio]");
-            if (selected.length > 0) {
-                selected[Math.floor(Math.random() * selected.length)].click();
+            if (selected.length == 1) {
+                selected[0].click();
+            } else if (selected.length > 0) {
+                var ind = Math.floor(Math.random() * selected.length);
+                console.log('Ind' + ind);
+                selected[ind].click();
             } else {
                 autonext = false;
             }
@@ -433,11 +541,8 @@
 
     var waitImg = function(img) {
         return new Promise((resolve, reject) => {
-            if (img.complete) {
-                resolve(true);
-            }
-            img.onload = () => resolve();
-            img.onerror = () => resolve();
+            if (img.complete) resolve();
+            img.onload = img.onerror = () => resolve();
         });
     };
 
