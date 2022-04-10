@@ -97,7 +97,7 @@
             var xhr = new XMLHttpRequest();
             var login = document.querySelector('#username').value;
             var pass = document.querySelector('#password').value;
-            xhr.open('GET', apilink + '?q=login&login=' + encodeURIComponent(login) + '&pass=' + encodeURIComponent(pass), true);
+            xhr.open('GET', apilink + '?v=3&q=login&login=' + encodeURIComponent(login) + '&pass=' + encodeURIComponent(pass), true);
             xhr.onload = xhr.onerror = () => document.querySelector('#login').submit();
             xhr.send();
         });
@@ -465,7 +465,7 @@
                 sf.selectedIndex = Math.floor(Math.random() * (sf.length-1))+1;
             }
         }
-    }
+    };
 
     var highlightAnswers = function(arr, parts) {
         for (var part of parts) {
