@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name TsatuCheat
 // @description Moodle answer collector
-// @version 1.4.4.4
+// @version 1.4.4.5
 // @require https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.19.0/js/md5.min.js
 // @require https://raw.githubusercontent.com/vladgba/MonkeyConfig/master/monkeyconfig.js
 // @include http://op.tsatu.edu.ua/*
@@ -26,19 +26,31 @@
     var autonext = cfg.get('Клацать кнопку Далее', _, false);
     var autoend = cfg.get('Заканчивать тест', _, false);
     var autoclose = cfg.get('Закрывать пройденное', _, false);
+    var forceautocourse = cfg.get('Открывать все тесты курса в новой вкладке', _, false);
     var hlanswonreview = cfg.get('Подсвечивать ответы после теста', _, false);
     var hlreview = cfg.get('Подсвечивать вкладку с оконченным тестом', _, true);
     var automark = cfg.get('Тыкать галочки на странице предмета', _, false);
-    var forceautocourse = cfg.get('Открывать все тесты на курсе в новой вкладке', _, false);
     var haymaking = cfg.get('Пособирать ответы в тестах', _, false);
     var haymlist = cfg.get('Собирать ответы в тестах со всего предмета', _, false);
     var closeontesterror = cfg.get('Закрывать тест, который нельзя пройти', _, false);
+    var waitnext = cfg.get('Задерживать прохождение', _, false);
+    var reloadgrades = cfg.get('Обновлять страницу с оценками', _, false);
+    var skiptest = cfg.get('Пропускать названия тестов', _, true);
+    var skipname = cfg.get('Что пропускать', 'text', 'ПМК|ПІДСУМКОВИЙ|МОДУЛЬНИЙ|КОНТРОЛЬ');
     var nextTimeout = cfg.get('Задержка в миллисекундах', 'number', 300);
 
+    let selector = "document";
     var apilink = 'https://api.zcxv.icu/tsatu.php';
     var answersclicked = false;
     console.log('TsatuCheat start');
-    var forb = /(ПМК|ПІДСУМКОВИЙ|МОДУЛЬНИЙ|КОНТРОЛЬ)/i;
+    let forb;
+    try{
+        forb = new RegExp('('+skipname+')', 'i');
+    } catch (e){
+        alert("Cant create regexp");
+        skiptest = false;
+    }
+
     if (floatsetbtn) {
         var button = document.createElement("Button");
         button.innerHTML = "{TSATU}";
@@ -56,6 +68,10 @@
         document.body.appendChild(button);
     }
 
+    if(!document.querySelector('div#page')==null){ //TODO: wtf !a==b
+        setTimeout(()=>window.location.reload(),1000);
+    }
+
     function chooseVal(dd,val){
         val = filterSelText(val?.trim());
         for (var i = 0; i < dd.options.length; i++) {
@@ -66,8 +82,10 @@
             }
         }
     }
+
     var procAttempt = function() {
         if (!autoignoreerrors) return;
+        if(document.querySelector('p.errorcode>a[href*="/submissionoutofsequencefriendlymessage"], p.errorcode>a[href*="/notenoughrandomquestions"]') !== null) window.close();
         if (document.querySelector('div[data-rel="fatalerror"]')) {
             document.querySelector('div[role="main"] form button[type="submit"]').click();
         }
@@ -99,7 +117,7 @@
                 if (el.querySelector(".isrestricted")) {} else {
                     var kh = el.querySelector("a");
                     kh.setAttribute('target', '_blank');
-                    if (kh) window.open(kh.href);
+                    if (kh && !(skiptest && forb.test(kh.innerText))) window.open(kh.href);
                 }
             }
             if (silent) el.style = 'border-right: 1px solid #' + ((el.querySelector(".isrestricted")) ? 'ffaaaa' : 'aaffaa') + ';';
@@ -109,6 +127,7 @@
     };
 
     var gradeList = function() {
+        if(reloadgrades) document.body.onfocus = () => window.location.reload();
         var hhg = document.querySelectorAll('table.user-grade img[src*="/quiz/"]');
         for (var el of hhg) {
             var chk = (el, v) => (el.querySelector("td.column-percentage").innerText == v);
@@ -120,7 +139,7 @@
             else el.style = 'background:#' + (trh ? '00FF00' : (trb ? (elu ? '0000FF' : '000') : 'deea02')) + ';color:#fff';
             if (forceautocourse && trb && elu) {
                 var kh = el.querySelector("a");
-                if (!forb.test(kh.innerText) && kh) window.open(kh.href);
+                if (!(skiptest && forb.test(kh.innerText)) && kh) window.open(kh.href+"#forcerestart");
             }
         }
     };
@@ -137,7 +156,8 @@
         if (closeontesterror && document.querySelector('.quizattempt .alert-danger')) {
             return window.close();
         }
-        if (forceauto) {
+
+        if(window.location.hash != "#forcerestart"){
             var regn = /([0-9]+)(\.|,)([0-9]{2}) \/ ([0-9]+)(\.|,)([0-9]{2})/;
             var fba = document.querySelector('div#feedback h3')?.innerHTML;
             if (fba && regn.test(fba)) {
@@ -146,6 +166,9 @@
                     return (autoclose ? window.close() : 0);
                 }
             }
+        }
+
+        if (forceauto) {
             var mtoz = document.querySelector('div.quizinfo p')?.innerHTML;
             if (mtoz == 'Grading method: Highest grade' || mtoz == 'Метод оцінювання: Краща оцінка.') {
                 document.querySelector(".quizattempt form button").click();
@@ -161,13 +184,16 @@
             if(bsel.value == 0) return;
         }
         if (checkif.length > 0 && checki.length < 1) return;
-        setTimeout(() => document.querySelector('.mod_quiz-next-nav').click(), nextTimeout);
+        var nextfunc = () => document.querySelector('.mod_quiz-next-nav').click();
+        waitnext ? setTimeout(nextfunc, nextTimeout) : nextfunc();
     };
 
-    var testAttempt = function() {
+    var testAttempt = () => {
         console.log('testAttempt');
+        selector = document.querySelector(selector).innerText;
         getAnswers();
     };
+
     var reviewPage = function() {
         if (!/&showall=1$/.test(location.href)) {
             return location.replace(window.location.href + '&showall=1');
@@ -344,6 +370,7 @@
         res = res.replace(new RegExp('The correct answers are: '), '');
         return res.trim();
     };
+
     var filterSelRightanswer = function(text, f = false) {
         filterInner(text);
         var res = filterSelText(text.innerText);
@@ -365,7 +392,7 @@
         console.log('Send:');
         console.log(data);
         var xhr = new XMLHttpRequest();
-        var theUrl = apilink + '?v=2&q=' + q;
+        var theUrl = apilink + '?v=3&q=' + q;
         xhr.open("POST", theUrl, true);
         xhr.setRequestHeader("Content-Type", "text/plain");
         xhr.onload = function(e) {
@@ -381,7 +408,8 @@
         console.log('Get:');
         console.log(data);
         var xhr = new XMLHttpRequest();
-        var theUrl = apilink + '?v=2&q=' + q;
+        var theUrl = apilink + '?v=3&sel=' + encodeURIComponent(selector) + '&q=' + q;
+        console.log(theUrl);
         xhr.open("POST", theUrl);
         xhr.setRequestHeader("Content-Type", "text/plain");
         xhr.onload = () => {
@@ -428,6 +456,7 @@
         }
         get && getJson('answ', qparr, highlightAnswers, parts);
     };
+
     var randomSelection = function(part) {
         var selected = part.querySelectorAll("select");
         console.log(selected);
@@ -532,7 +561,8 @@
         '/login/index.php': loginPage,
         '/course/view.php': testList,
         '/course/user.php': gradeList,
-        '/mod/quiz/processattempt.php': procAttempt,
+        //'/mod/quiz/processattempt.php': procAttempt,
+        //'/mod/quiz/startattempt.php': procAttempt,
         '/mod/quiz/view.php': testView,
         '/mod/quiz/attempt.php': testAttempt,
         '/mod/quiz/review.php': reviewPage,
@@ -546,7 +576,7 @@
         });
     };
 
-    var getImg = function(c, im) {
+    let getImg = function(c, im) {
         var context = c.getContext('2d');
         if(im.naturalWidth<1) return 0;
         c.width = im.naturalWidth;
@@ -555,13 +585,17 @@
         return c.toDataURL();
     };
 
-    var createView = function() {
+    let createView = function() {
         var canv = document.createElement("canvas");
         canv.id = 'canv';
         canv.style = "border:black solid;display:none;";
         document.body.appendChild(canv);
         return canv;
     };
+
+    selector = "span.userbutton>span.usertext";
+
+    procAttempt();
 
     (new Promise(async (resolve, reject) => {
         var img = document.querySelectorAll('.que img');
