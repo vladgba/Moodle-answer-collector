@@ -3,6 +3,7 @@
 // @description Moodle answer collector
 // @version 1.4.4.5
 // @require https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.19.0/js/md5.min.js
+// @require https://raw.githubusercontent.com/vladgba/MonkeyConfig/master/monkeyconfig.js
 // @match *://*/*login/index.php*
 // @match *://*/*course/view.php*
 // @match *://*/*course/user.php*
