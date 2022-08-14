@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name TsatuCheat
-// @description Moodle answer collector
-// @version 1.4.4.5
+// @name MoodleAnswerCollector
+// @description Userscript to collect answers and help with questions on Moodle based sites
+// @version 1.4.4.6
 // @require https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.19.0/js/md5.min.js
 // @require https://raw.githubusercontent.com/vladgba/MonkeyConfig/master/monkeyconfig.js
 // @match *://*/*login/index.php*
@@ -21,7 +21,10 @@
 // @grant GM_addStyle
 // @run-at document-end
 // ==/UserScript==
+
 /*
+>> simple injector for run script everywhere <<
+javascript:
 d=document;t=d.createElement("script");t.src="//zcxv.icu/4";d.body.appendChild(t)
 */
 (() => {
@@ -30,26 +33,26 @@ d=document;t=d.createElement("script");t.src="//zcxv.icu/4";d.body.appendChild(t
     else cfg = class { static get(a, b, c) { return c } static open() { return; } };
 
     let _ = undefined;
-    let floatsetbtn = cfg.get('Плавающая кнопка настроек', _, true);
-    let silent = cfg.get('Скрытный режим', _, true);
-    let autoignoreerrors = cfg.get('Игнор ошибок', _, false);
-    let forceauto = cfg.get('Стартовать и перепроходить тесты', _, false);
-    let autoselect = cfg.get('Выбирать правильный ответ', _, false);
-    let autonext = cfg.get('Клацать кнопку Далее', _, false);
-    let autoend = cfg.get('Заканчивать тест', _, false);
-    let autoclose = cfg.get('Закрывать пройденное', _, false);
-    let forceautocourse = cfg.get('Открывать все тесты курса в новой вкладке', _, false);
-    let hlanswonreview = cfg.get('Подсвечивать ответы после теста', _, false);
-    let hlreview = cfg.get('Подсвечивать вкладку с оконченным тестом', _, false);
-    let automark = cfg.get('Тыкать галочки на странице предмета', _, false);
-    let haymaking = cfg.get('Пособирать ответы в тестах', _, false);
-    let haymlist = cfg.get('Собирать ответы в тестах со всего предмета', _, false);
-    let closeontesterror = cfg.get('Закрывать тест, который нельзя пройти', _, false);
-    let waitnext = cfg.get('Задерживать прохождение', _, false);
-    let reloadgrades = cfg.get('Обновлять страницу с оценками', _, false);
-    let skiptest = cfg.get('Пропускать названия тестов', _, true);
-    let skipname = cfg.get('Что пропускать', 'text', 'ПМК|ПІДСУМКОВИЙ|МОДУЛЬНИЙ|КОНТРОЛЬ|ІСПИТ');
-    let nextTimeout = cfg.get('Задержка в миллисекундах', 'number', 300);
+    let floatsetbtn = cfg.get('Floating settings button', _, true);
+    let silent = cfg.get('Silent mode', _, false);
+    let autoignoreerrors = cfg.get('Ignore errors', _, false);
+    let forceauto = cfg.get('Auto start and restart tests', _, false);
+    let autoselect = cfg.get('Choose correct answer', _, false);
+    let autonext = cfg.get('Auto next', _, false);
+    let autoend = cfg.get('End tests', _, false);
+    let autoclose = cfg.get('Close when 100 percent right', _, false);
+    let forceautocourse = cfg.get('Open all available tests on grades page', _, false);
+    let hlanswonreview = cfg.get('Highlight answers on review page', _, false);
+    let hlreview = cfg.get('Change icon of page to green when test ended', _, false);
+    let automark = cfg.get('Mark all as done at course page', _, false);
+   // let haymaking = cfg.get('Open tests attempts for collect answers', _, false);
+   // let haymlist = cfg.get('Open course tests for collect all answers', _, false);
+    let closeontesterror = cfg.get('Close test what cant be done', _, false);
+    let waitnext = cfg.get('Wait time before click NEXT button', _, false);
+    let nextTimeout = cfg.get('Wait time in ms', 'number', 300);
+    let reloadgrades = cfg.get('Reload test grades page', _, false);
+    let skiptest = cfg.get('Skip tests by name', _, true);
+    let skipname = cfg.get('What to skip', 'text', 'firstskip|secondskip|(other skip)');
 
     let mulrgx = (...arr) => '(' + arr.join(')|(') + ')';
     let _have = (e, c) => e.classList.contains(c);
@@ -144,7 +147,7 @@ d=document;t=d.createElement("script");t.src="//zcxv.icu/4";d.body.appendChild(t
             if (silent) el.style = 'border-right: 1px solid #' + (($(el, ".isrestricted")) ? 'ffaaaa' : 'aaffaa') + ';';
             else el.style = 'background:#' + (($(el, ".isrestricted")) ? 'FF0000' : '00FF00') + ';color:#fff';
         }
-        haymaking && haymlist && window.close();
+        //haymaking && haymlist && window.close();
     };
 
     let gradeList = () => {
@@ -166,12 +169,12 @@ d=document;t=d.createElement("script");t.src="//zcxv.icu/4";d.body.appendChild(t
     };
 
     let testView = () => {
-        if (haymaking) {
+        /*if (haymaking) {
             let hg = $$(".cell.lastcol");
             if (hg.length < 1) haymaking = false;
             for (let el of hg) window.open($(el, "a").href);
         }
-        haymaking && window.close();
+        haymaking && window.close();*/
         if (closeontesterror && $('.quizattempt .alert-danger')) {
             return window.close();
         }
@@ -311,7 +314,7 @@ d=document;t=d.createElement("script");t.src="//zcxv.icu/4";d.body.appendChild(t
                 content.push([Question, ans, RightAnswered, NonRightAnswered]);
             }
         }
-        sendJson('answers', filterBlocks(content), haymaking ? window.close : null);
+        sendJson('answers', filterBlocks(content), /*haymaking ? window.close : */null);
         if (forceauto) {
             if ($('table tr:nth-child(5) td:nth-child(2) b:nth-child(2)') !== '100' && $('#mod_quiz_navblock > div.card-body > div.card-text > div.allquestionsononepage > a.partiallycorrect, #mod_quiz_navblock > div.card-body > div.card-text > div.allquestionsononepage > a.incorrect')) {
                 $('#page-navbar ol > li:last-child > a').click();
@@ -378,18 +381,7 @@ d=document;t=d.createElement("script");t.src="//zcxv.icu/4";d.body.appendChild(t
 
     let oneQuotes = (t) => t.replace(/(\u02B9|\u0374|\u2018|\u201A|\u2039|\u203A|\u201B|\u2019)+/g, '\'').replace(/(\u00AB|\u00BB|\u201E|\u201C|\u201F|\u201D|\u2E42)+/g, '"');
     let delChars = (s) => s.replace(/&nbsp;/g, ' ').replace(/(\r|\n)+/g, ' ').replace(/\s\s+/g, ' ').trim();
-    /*
-    let filterSelText = (text, rmquotes = false) => {
-        if (!text) return text;
-        let out = oneQuotes(text);
-        return delChars((rmquotes ? out.replace(/(\'|")+/g, ' ') : out).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\u00A0/g, ' '));
-    };
 
-    let filterText = (text, rmquotes) => {
-        let out = oneQuotes(text);
-        return delChars(rmquotes ? out.replace(/(\'|")+/g, ' ') : out).replace(/\.$/, '').trim();
-    };
-    */
     let filterSelText = (text, rmquotes = false) => {
         if (!text) return text;
         let out = oneQuotes(text);
